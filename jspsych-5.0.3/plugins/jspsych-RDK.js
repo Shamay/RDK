@@ -40,7 +40,7 @@ jsPsych.plugins["RDK"] = (function() {
 		//If any of the parameters are functions, evaluate them now
 		trial = jsPsych.pluginAPI.evaluateFunctionParameters(trial);
 		
-		//Note on '||' logical operator: If the first option is 'undefined', it evalutes to 'false' and the second option is returned as the assignment
+		//Note on '||' logical operator: If the first option is 'undefined', it evalutes to 'false' and the second option is returned as the assignment		
 		trial.choices = trial.choices || [];
 		trial.correct_choice = trial.correct_choice; 
 		trial.trial_duration = trial.trial_duration || 500;
@@ -81,7 +81,13 @@ jsPsych.plugins["RDK"] = (function() {
 		}
 
 		//Convert the parameter variables to those that the code below can use
-
+		var experiment = 'shapes'; //dots or shapes
+		var shape = 1; //1: circle, 2: rectangle, 3: triangle, 4: diamond
+		var shapeColor = 'yellow';
+		var colorCoherence = 0.6;
+		var correctColor = 'yellow';
+		var incorrectColor = 'blue';
+		
 		var nDots = trial.number_of_dots; //Number of dots per set (equivalent to number of dots per frame)
 		var nSets = trial.number_of_sets; //Number of sets to cycle through per frame
 		var coherentDirection = trial.coherent_direction; //The direction of the coherentDots in degrees. Starts at 3 o'clock and goes counterclockwise (0 == rightwards, 90 == upwards, 180 == leftwards, 270 == downwards), range 0 - 360
@@ -238,8 +244,13 @@ jsPsych.plugins["RDK"] = (function() {
 		//Declare global variable to be defined in startKeyboardListener function and to be used in end_trial function
 		var keyboardListener; 
 
-		//This runs the dot motion simulation, updating it according to the frame refresh rate of the screen.
-		animateDotMotion();
+		if (experiment=='dots'){
+		  //This runs the dot motion simulation, updating it according to the frame refresh rate of the screen.
+		  animateDotMotion();
+		}
+		else if (experiment=='shapes'){
+		  drawShape(shape, shapeColor);
+		}
 		
 		
 		//--------RDK variables and function calls end--------
@@ -407,10 +418,31 @@ jsPsych.plugins["RDK"] = (function() {
 
 			return tempArray;
 		}
+		//shuffle elements in the array
+		    function shuffleArray(array) {
+		      var currentIndex = array.length, temporaryValue, randomIndex;
+
+		      // While there remain elements to shuffle...
+		      while (0 !== currentIndex) {
+
+			// Pick a remaining element...
+			randomIndex = Math.floor(Math.random() * currentIndex);
+			currentIndex -= 1;
+
+			// And swap it with the current element.
+			temporaryValue = array[currentIndex];
+			array[currentIndex] = array[randomIndex];
+			array[randomIndex] = temporaryValue;
+		      }
+
+		      return array;
+		    }
 
 		//Make the dot array
 		function makeDotArray() {
 			var tempArray = []
+			var colorArray = Array(nCorrectColor).fill(1).concat(Array(nIncorrectColor).fill(0))
+      			colorArray = shuffleArray(colorArray)
 			for (var i = 0; i < nDots; i++) {
 				//Initialize a dot to be modified and inserted into the array
 				var dot = {
@@ -490,7 +522,28 @@ jsPsych.plugins["RDK"] = (function() {
 					setvx2vy2(dot); // Set dot.vx2 and dot.vy2
 					dot.updateType = "constant direction or random direction";
 				} //End of RDK==6
+				//For the same && random direction RDK type and different colors
+				if (RDK == 7) {
 
+				  //For coherent dots
+				  if (i < nCoherentDots) {
+				    dot = setvxvy(dot); // Set dot.vx and dot.vy
+				    dot.updateType = "constant direction";
+				  }
+				  //For incoherent dots
+				  else {
+				    setvx2vy2(dot); // Set dot.vx2 and dot.vy2
+				    dot.updateType = "random direction";
+				  }
+
+				  if (colorArray[i] == 1) {
+				    dot.color = correctColor;
+				  }
+				  else {
+				    dot.color = incorrectColor;
+				  }
+
+				} //End of RDK==7
 				tempArray.push(dot);
 			} //End of for loop
 			return tempArray;
@@ -862,6 +915,38 @@ jsPsych.plugins["RDK"] = (function() {
 				}
 			}
 		}
+		//Draw a shape on the canvas
+		function drawShape(shape, shapeColor) {
+		      ctx.beginPath();
+		      var centerX = canvas.width / 2;
+		      var centerY = canvas.height / 2;
+		      if (shape == 1){
+			//draw a circle
+			ctx.arc(centerX,centerY,50,0,2*Math.PI);
+		      }
+		      else if (shape == 2){
+			//draw a rectangle
+
+			ctx.rect(centerX-50,centerY-35,100,70);
+		      }
+		      else if (shape == 3){
+			//draw a triangle
+			ctx.moveTo(centerX, centerY-45);
+			ctx.lineTo(centerX+60, centerY+30);
+			ctx.lineTo(centerX-60, centerY+30);
+		      }
+		      else if (shape == 4){
+			//draw a diamond
+			ctx.moveTo(centerX+45, centerY);
+			ctx.lineTo(centerX, centerY-55);
+			ctx.lineTo(centerX-45, centerY);
+			ctx.lineTo(centerX, centerY+55);
+		      }
+		      ctx.fillStyle = shapeColor;
+		      ctx.strokeStyle = shapeColor;
+		      ctx.fill();
+		      ctx.stroke();
+		      }
 
 		//----RDK Functions End----
 
