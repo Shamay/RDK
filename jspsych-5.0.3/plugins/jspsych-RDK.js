@@ -1,381 +1,175 @@
 /*
 		
-	RDK plugin for JsPsych
-	----------------------
-	
-	This code was created in the Consciousness and Metacognition Lab at UCLA, 
-	under the supervision of Brian Odegaard and Hakwan Lau
-	
-	----------------------
-	
-	Copyright (C) 2017  Sivananda Rajananda
-	
-	This program is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-	
-	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
-	
-	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+		RDK plugin for JsPsych
+    ----------------------
+		
+		This code was created in the Consciousness and Metacognition Lab at UCLA, 
+		under the supervision of Brian Odegaard and Hakwan Lau
+    
+    ----------------------
+    
+		Copyright (C) 2017  Sivananda Rajananda
+    		
+		This program is free software: you can redistribute it and/or modify
+		it under the terms of the GNU General Public License as published by
+		the Free Software Foundation, either version 3 of the License, or
+		(at your option) any later version.
+		
+		This program is distributed in the hope that it will be useful,
+		but WITHOUT ANY WARRANTY; without even the implied warranty of
+		MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+		GNU General Public License for more details.
+		
+		You should have received a copy of the GNU General Public License
+		along with this program.  If not, see <http://www.gnu.org/licenses/>.
 		
 */
-		
-		
-jsPsych.plugins["RDK"] = (function() {
 
-	var plugin = {};
+//--------------------------------------
+//---------SET PARAMETERS BEGIN---------
+//--------------------------------------
+var experiment = 'shapes'; //dots or shapes
+var shape = 3; //1: circle, 2: rectangle, 3: triangle, 4: diamond
+var shapeColor = 'blue';
 
-	//BEGINNING OF TRIAL 
-	plugin.trial = function(display_element, trial) {
+var nDots = 500; //Number of dots per set (equivalent to number of dots per frame)
+var nSets = 1; //Number of sets to cycle through per frame
+var coherentDirection = 123; //The direction of the coherentDots in degrees. Starts at 3 o'clock and goes counterclockwise (0 == rightwards, 90 == upwards, 180 == leftwards, 270 == downwards), range 0 - 360
+var coherence = 0.75; //Proportion of dots to move together, range from 0 to 1
 
-		//--------------------------------------
-		//---------SET PARAMETERS BEGIN---------
-		//--------------------------------------
-		
-		//If any of the parameters are functions, evaluate them now
-		trial = jsPsych.pluginAPI.evaluateFunctionParameters(trial);
-		
-		//Note on '||' logical operator: If the first option is 'undefined', it evalutes to 'false' and the second option is returned as the assignment
-		trial.choices = trial.choices || [];
-		trial.correct_choice = trial.correct_choice; 
-		trial.trial_duration = trial.trial_duration || 500;
-		trial.number_of_dots = trial.number_of_dots || 300;
-		trial.number_of_sets = trial.number_of_sets || 1;
-		trial.coherent_direction = trial.coherent_direction || 0;
-		trial.dot_radius = trial.dot_radius || 2;
-		trial.dot_life = trial.dot_life || -1;
-		trial.move_distance = trial.move_distance || 1;
-		trial.aperture_width = trial.aperture_width || 600;
-		trial.aperture_height = trial.aperture_height || 400;
-		trial.dot_color = trial.dot_color || "white"; 
-		trial.background_color = trial.background_color || "gray";
-		trial.RDK_type = trial.RDK_type || 3;
-		trial.aperture_type = trial.aperture_type || 2;
-		trial.reinsert_type = trial.reinsert_type || 2;
-		trial.aperture_center_x = trial.aperture_center_x || window.innerWidth/2;
-		trial.aperture_center_y = trial.aperture_center_y || window.innerHeight/2;
-		trial.fixation_cross = trial.fixation_cross || false; 
-		trial.fixation_cross_width = trial.fixation_cross_width || 20; 
-		trial.fixation_cross_height = trial.fixation_cross_height || 20; 
-		trial.fixation_cross_color = trial.fixation_cross_color || "black";
-		trial.fixation_cross_thickness = trial.fixation_cross_thickness || 1; 
-		
-		//parameters for colored experiment
-		trial.correctColor = trial.correctColor || 'red';
-		trial.incorrectColor = trial.incorrectColor || 'blue';
-		trial.colorCoherence = trial.colorCoherence || 0;
-		//Coherence can be zero, but logical operators evaluate it to false. So we do it manually
-		if(typeof trial.coherence === 'undefined'){
-			trial.coherence = 0.5;
-		}
+var colorCoherence = 0.6;
+var correctColor = 'yellow';
+var incorrectColor = 'blue';
+var dotRadius = 2; //Radius of each dot in pixels
 
-		//Logical operators won't work for boolean parameters like they do for non-boolean parameters above, so we do it manually
-		if (typeof trial.response_ends_trial === 'undefined') {
-			trial.response_ends_trial = true;
-		}
-		
-		//For square and circle, set the aperture height == aperture width
-		if (apertureType == 1 || apertureType == 3) {
-			trial.aperture_height = trial.aperture_width;
-		}
-
-		//Convert the parameter variables to those that the code below can use
-
-		var nDots = trial.number_of_dots; //Number of dots per set (equivalent to number of dots per frame)
-		var nSets = trial.number_of_sets; //Number of sets to cycle through per frame
-		var coherentDirection = trial.coherent_direction; //The direction of the coherentDots in degrees. Starts at 3 o'clock and goes counterclockwise (0 == rightwards, 90 == upwards, 180 == leftwards, 270 == downwards), range 0 - 360
-		var coherence = trial.coherence; //Proportion of dots to move together, range from 0 to 1
-		var dotRadius = trial.dot_radius; //Radius of each dot in pixels
-		var dotLife = trial.dot_life; //How many frames a dot will keep following its trajectory before it is redrawn at a random location. -1 denotes infinite life (the dot will only be redrawn if it reaches the end of the aperture).
-		var moveDistance = trial.move_distance; //How many pixels the dots move per frame
-		var apertureWidth = trial.aperture_width; // How many pixels wide the aperture is. For square aperture this will be the both height and width. For circle, this will be the diameter.
-		var apertureHeight = trial.aperture_height; //How many pixels high the aperture is. Only relevant for ellipse and rectangle apertures. For circle and square, this is ignored.
-		var dotColor = trial.dot_color; //Color of the dots
-		var backgroundColor = trial.background_color; //Color of the background
-		var apertureCenterX = trial.aperture_center_x; // The x-coordinate of center of the aperture on the screen, in pixels
-		var apertureCenterY = trial.aperture_center_y; // The y-coordinate of center of the aperture on the screen, in pixels
-		
-
-		/* RDK type parameter
-		** See Fig. 1 in Scase, Braddick, and Raymond (1996) for a visual depiction of these different signal selection rules and noise types
-
-		-------------------
-		SUMMARY:
-
-		Signal Selection rule:
-		-Same: Each dot is designated to be either a coherent dot (signal) or incoherent dot (noise) and will remain so throughout all frames in the display. Coherent dots will always move in the direction of coherent motion in all frames.
-		-Different: Each dot can be either a coherent dot (signal) or incoherent dot (noise) and will be designated randomly (weighted based on the coherence level) at each frame. Only the dots that are designated to be coherent dots will move in the direction of coherent motion, but only in that frame. In the next frame, each dot will be designated randomly again on whether it is a coherent or incoherent dot.
-
-		Noise Type:
-		-Random position: The incoherent dots appear in a random location in the aperture in each frame
-		-Random walk: The incoherent dots will move in a random direction (designated randomly in each frame) in each frame.
-		-Random direction: Each incoherent dot has its own alternative direction of motion (designated randomly at the beginning of the trial), and moves in that direction in each frame.
-
-		-------------------
-
-		 1 - same && random position
-		 2 - same && random walk
-		 3 - same && random direction
-		 4 - different && random position
-		 5 - different && random walk
-		 6 - different && random direction         */
-
-		var RDK = trial.RDK_type;
+var dotLife = -1;//How many frames a dot will keep following its trajectory before it is redrawn at a random location. -1 denotes infinite life (the dot will only be redrawn if it reaches the end of the aperture).
+var moveDistance = 1; //How many pixels the dots move per frame
+var apertureWidth = 400; // How many pixels wide the aperture is. For square aperture this will be the both height and width. For circle, this will be the diameter.
+var apertureHeight = 300; //How many pixels high the aperture is. Only relevant for ellipse and rectangle apertures. For circle and square, this is ignored.
+var dotColor = "white"; //Color of the dots
+var backgroundColor = "gray"; //Color of the background
+var apertureCenterX = window.innerWidth/2; // The x-coordinate of center of the aperture on the screen, in pixels
+var apertureCenterY = window.innerHeight/2; // The y-coordinate of center of the aperture on the screen, in pixels
 
 
-		/* 
-		Shape of aperture
-		 1 - Circle
-		 2 - Ellipse
-		 3 - Square
-		 4 - Rectangle
-		*/
-		var apertureType = trial.aperture_type;
+/* RDK type parameter
+** See Fig. 1 in Scase, Braddick, and Raymond (1996) for a visual depiction of these different signal selection rules and noise types
 
-		/*
-		Out of Bounds Decision
-		How we reinsert a dot that has moved outside the edges of the aperture:
-		1 - Randomly appear anywhere in the aperture
-		2 - Appear on the opposite edge of the aperture (Random if square or rectangle, reflected about origin in circle and ellipse)
-		*/
-		var reinsertType = trial.reinsert_type;
-		
-		//Fixation Cross Parameters
-		var fixationCross = trial.fixation_cross; true; //To display or not to display the cross
-		var fixationCrossWidth = trial.fixation_cross_width;  //The width of the fixation cross in pixels
-		var fixationCrossHeight = trial.fixation_cross_height; //The height of the fixation cross in pixels
-		var fixationCrossColor = trial.fixation_cross_color; //The color of the fixation cross
-		var fixationCrossThickness = trial.fixation_cross_thickness; //The thickness of the fixation cross, must be positive number above 1
+-------------------
+SUMMARY:
 
+Signal Selection rule:
+-Same: Each dot is designated to be either a coherent dot (signal) or incoherent dot (noise) and will remain so throughout all frames in the display. Coherent dots will always move in the direction of coherent motion in all frames.
+-Different: Each dot can be either a coherent dot (signal) or incoherent dot (noise) and will be designated randomly (weighted based on the coherence level) at each frame. Only the dots that are designated to be coherent dots will move in the direction of coherent motion, but only in that frame. In the next frame, each dot will be designated randomly again on whether it is a coherent or incoherent dot.
 
+Noise Type:
+-Random position: The incoherent dots are in a random location in the aperture in each frame
+-Random walk: The incoherent dots will move in a random direction (designated randomly in each frame) in each frame.
+-Random direction: Each incoherent dot has its own alternative direction of motion (designated randomly at the beginning of the trial), and moves in that direction in each frame.
 
-		//--------------------------------------
-		//----------SET PARAMETERS END----------
-		//--------------------------------------
+-------------------
 
-		//--------Set up Canvas begin-------
-		
-		//Create a canvas element and append it to the DOM
-		var canvas = document.createElement("canvas");
-		display_element.append(canvas); //'append' is the jQuery equivalent of 'appendChild' in the DOM method
-		
-		
-		//The document body IS 'display_element' (i.e. <body class="jspsych-display-element"> .... </body> )
-		var body = document.getElementsByClassName("jspsych-display-element")[0];
-		//Remove the margins and paddings of the display_element
-		body.style.margin = 0;
-		body.style.padding = 0;
-		body.style.backgroundColor = backgroundColor; //Match the background of the display element to the background color of the canvas so that the removal of the canvas at the end of the trial is not noticed
+ 1 - same && random position
+ 2 - same && random walk
+ 3 - same && random direction
+ 4 - different && random position
+ 5 - different && random walk
+ 6 - different && random direction         */
 
-		//Remove the margins and padding of the canvas
-		canvas.style.margin = 0;
-		canvas.style.padding = 0;		
-		
-		//Get the context of the canvas so that it can be painted on.
-		var ctx = canvas.getContext("2d");
-
-		//Declare variables for width and height, and also set the canvas width and height to the window width and height
-		var width = canvas.width = window.innerWidth;
-		var height = canvas.height = window.innerHeight;
-
-		//Set the canvas background color
-		canvas.style.backgroundColor = backgroundColor;
-
-		//--------Set up Canvas end-------
-		
-		
-		
-		//--------RDK variables and function calls begin--------
-		
-		//This is the main part of the trial that makes everything run
-
-		//Declare aperture parameters for initialization based on shape (used in initializeApertureParameters function below)
-		var horizontalAxis;
-		var verticalAxis;
-		
-		//Initialize the aperture parameters
-		initializeApertureParameters();
-		
-		//Declare global variable to store the frame rate of the trial
-		var frameRate = []; //How often the monitor refreshes, in ms. Currently an array to store all the intervals. Will be converted into a single number (the average) in end_trial function.
-		
-		//variable to store how many frames were presented.
-		var numberOfFrames = 0;
-		
-		//Calculate the x and y jump sizes for coherent dots
-		var coherentJumpSizeX = calculateCoherentJumpSizeX(coherentDirection);
-		var coherentJumpSizeY = calculateCoherentJumpSizeY(coherentDirection);
-
-		//Calculate the number of coherent and incoherent dots
-		var nCoherentDots = nDots * coherence;
-		var nIncoherentDots = nDots - nCoherentDots;
-
-		//Make the array of arrays containing dot objects
-		var dotArray2d = makeDotArray2d();
-
-		var dotArray; //Declare a global variable to hold the current array
-		var currentSet = 0; //Declare and initialize a global variable to cycle through the dot arrays
-		
-		//Initialize stopping condition for animateDotMotion function that runs in a loop
-		var stopDotMotion = false;
-		
-		//Variable to control the frame rate, to ensure that the first frame is skipped because it follows a different timing
-		var firstFrame = true; //Used to skip the first frame in animate function below (in animateDotMotion function)
-		
-		//Variable to start the timer when the time comes
-		var timerHasStarted = false;
-
-		//Initialize object to store the response data. Default values of -1 are used if the trial times out and the subject has not pressed a valid key
-		var response = {
-			rt: -1,
-			key: -1
-		}
-		
-		//Declare a global timeout ID to be initialized below in animateDotMotion function and to be used in after_response function
-		var timeoutID;
-		
-		//Declare global variable to be defined in startKeyboardListener function and to be used in end_trial function
-		var keyboardListener; 
-
-		//This runs the dot motion simulation, updating it according to the frame refresh rate of the screen.
-		animateDotMotion();
-		
-		
-		//--------RDK variables and function calls end--------
+var RDK = 7;
 
 
+/* 
+Shape of aperture
+ 1 - Circle
+ 2 - Ellipse
+ 3 - Square
+ 4 - Rectangle
+*/
+var apertureType = 1;
 
-		//-------------------------------------
-		//-----------FUNCTIONS BEGIN-----------
-		//-------------------------------------
+/*
+Out of Bounds Decision
+How we reinsert a dot that has moved outside the edges of the aperture:
+1 - Randomly appear anywhere in the aperture
+2 - Randomly appear on the opposite edge of the aperture
+*/
+var reinsertType = 2;
 
-		//----JsPsych Functions Begin----
-		
-		
-		//Function to start the keyboard listener
-		function startKeyboardListener(){
-			//Start the response listener if there are choices for keys
-			if (trial.choices != jsPsych.NO_KEYS) {
-				//Create the keyboard listener to listen for subjects' key response
-				keyboardListener = jsPsych.pluginAPI.getKeyboardResponse({
-					callback_function: after_response, //Function to call once the subject presses a valid key
-					valid_responses: trial.choices, //The keys that will be considered a valid response and cause the callback function to be called
-					rt_method: 'performance', //The type of method to record timing information. 'performance' is not yet supported by all browsers, but it is supported by Chrome. Alternative is 'date', but 'performance' is more precise.
-					persist: false, //If set to false, keyboard listener will only trigger the first time a valid key is pressed. If set to true, it has to be explicitly cancelled by the cancelKeyboardResponse plugin API.
-					allow_held_key: false //Only register the key once, after this getKeyboardResponse function is called. (Check JsPsych docs for better info under 'jsPsych.pluginAPI.getKeyboardResponse').
-				});
-			}
-		}
+//FixationCrossParameters
+var fixationCross = true; //To display or not to display the cross
+var fixationCrossWidth = 20; //The width of the fixation cross in pixels
+var fixationCrossHeight = 20; //The height of the fixation cross in pixels
+var fixationCrossColor = "black"; //The color of the fixation cross
+var fixationCrossThickness = 1; //The thickness of the fixation cross, must be positive number above 1
 
-		//Function to end the trial proper
-		function end_trial() {
-			
-			//Stop the dot motion animation
-			stopDotMotion = true;
-			
-			//Store the number of frames
-			numberOfFrames = frameRate.length;
-			
-			//Variable to store the frame rate array
-			var frameRateArray = frameRate;
-			
-			//Calculate the average frame rate
-			if(frameRate.length > 0){//Check to make sure that the array is not empty
-				frameRate = frameRate.reduce((total,current) => total + current)/frameRate.length; //Sum up all the elements in the array
-			}else{
-				frameRate = 0; //Set to zero if the subject presses an answer before a frame is shown (i.e. if frameRate is an empty array)
-			}
 
-			//Kill the keyboard listener if keyboardListener has been defined
-			if (typeof keyboardListener !== 'undefined') {
-				jsPsych.pluginAPI.cancelKeyboardResponse(keyboardListener);
-			}
+//--------------------------------------
+//----------SET PARAMETERS END----------
+//--------------------------------------
 
-			//Place all the data to be saved from this trial in one data object
-			var trial_data = { 
-				"rt": response.rt, //The response time
-				"key_press": response.key, //The key that the subject pressed
-				"correct": correctOrNot(), //If the subject response was correct
-				"choices": trial.choices, //The set of valid keys
-				"correct_choice": trial.correct_choice, //The correct choice
-				"trial_duration": trial.trial_duration, //The trial duration 
-				"response_ends_trial": trial.response_ends_trial, //If the response ends the trial
-				"number_of_dots": trial.number_of_dots,
-				"number_of_sets": trial.number_of_sets,
-				"coherent_direction": trial.coherent_direction,
-				"coherence": trial.coherence,
-				"dot_radius": trial.dot_radius,
-				"dot_life": trial.dot_life,
-				"move_distance": trial.move_distance,
-				"aperture_width": trial.aperture_width,
-				"aperture_height": trial.aperture_height,
-				"dot_color": trial.dot_color,
-				"background_color": trial.background_color,
-				"RDK_type": trial.RDK_type,
-				"aperture_type": trial.aperture_type,
-				"reinsert_type": trial.reinsert_type,
-				"frame_rate": frameRate, //The average frame rate for the trial
-				"frame_rate_array": JSON.stringify(frameRateArray), //The array of ms per frame in this trial, in the form of a JSON string
-				"number_of_frames": numberOfFrames //The number of frames in this trial
-			}
-			
-			//Remove the canvas as the child of the display_element element
-			display_element.empty();
-			
-			//Restore the margin to JsPsych defaults
-			body.style.margin = "50px auto 50px auto";
+//------Set up canvas begin---------
 
-			//End this trial and move on to the next trial
-			jsPsych.finishTrial(trial_data);
-			
-		} //End of end_trial
+//Initialize the canvas variable so that it can be used in code below.
+var canvas = document.getElementById("myCanvas");
+var ctx = canvas.getContext("2d");
 
-		//Function to record the first response by the subject
-		function after_response(info) {
-			
-			//Kill the timeout if the subject has responded within the time given
-			window.clearTimeout(timeoutID);
+//Declare variables for width and height, and also set the canvas width and height to the window width and height
+var width = canvas.width = window.innerWidth;
+var height = canvas.height = window.innerHeight;
 
-			//If the response has not been recorded, record it
-			if (response.key == -1) {
-				response = info; //Replace the response object created above
-			}
+//Set the canvas background color
+canvas.style.backgroundColor = backgroundColor;
 
-			//If the parameter is set such that the response ends the trial, then end the trial
-			if (trial.response_ends_trial) {
-				end_trial();
-			}
+//------Set up canvas end---------
 
-		}; //End of after_response
-		
-		//Function that determines if the response is correct
-		function correctOrNot(){
-						
-			//Check that the correct_choice has been defined
-			if(typeof trial.correct_choice !== 'undefined'){
-				//Check if the correct_choice variable holds an array
-				if(trial.correct_choice.constructor === Array){ //If it is an array
-					trial.correct_choice = trial.correct_choice.map(function(x){return x.toUpperCase();}); //Convert all the values to upper case
-					return trial.correct_choice.includes(String.fromCharCode(response.key)); //If the response is included in the correct_choice array, return true. Else, return false.
-				}
-				//Else compare the char with the response key
-				else{
-					//Return true if the user's response matches the correct answer. Return false otherwise.
-					return response.key == trial.correct_choice.toUpperCase().charCodeAt(0);
-				}
-			}
-		}
+//--------RDK variables and function calls begin--------
 
-		//----JsPsych Functions End----
+// [This is the main part of RDK that makes everything run]
 
-		//----RDK Functions Begin----
+//Declare aperture parameters for initialization based on shape (used in initializeApertureParameters function below)
+var horizontalAxis;
+var verticalAxis;
 
-		//Calculate coherent jump size in the x direction
+//Initialize the aperture parameters
+initializeApertureParameters();
+
+//Calculate the x and y jump sizes for coherent dots
+var coherentJumpSizeX = calculateCoherentJumpSizeX(coherentDirection);
+var coherentJumpSizeY = calculateCoherentJumpSizeY(coherentDirection);
+
+//Calculate the number of coherent and incoherent dots
+var nCoherentDots = nDots * coherence;
+var nIncoherentDots = nDots - nCoherentDots;
+
+var nCorrectColor = Math.floor((0.5 + 0.5 * colorCoherence) *nDots);
+var nIncorrectColor = nDots - nCorrectColor;
+
+//Make the array of arrays containing dot objects
+var dotArray2d = makeDotArray2d();
+
+var dotArray; //Declare a global variable to hold the current array
+var currentSet = 0; //Declare and initialize a global variable to cycle through the dot arrays
+
+//Initialize stopping condition for animateDotMotion function that runs in a loop
+var stopDotMotion = false;
+
+if (experiment=='dots'){
+  //This runs the dot motion simulation, updating it according to the frame refresh rate of the screen.
+  animateDotMotion();
+}
+else{
+  drawShape(shape, shapeColor);
+}
+
+//--------RDK variables and function calls end--------
+
+
+//---------------------------------------
+//-----------FUNCTIONS BEGIN-------------
+//---------------------------------------
+
+//Calculate coherent jump size in the x direction
 		function calculateCoherentJumpSizeX(coherentDirection) {
 			var angleInRadians = coherentDirection * Math.PI / 180;
 			return moveDistance * Math.cos(angleInRadians);
@@ -391,7 +185,7 @@ jsPsych.plugins["RDK"] = (function() {
 		function initializeApertureParameters() {
 			//For circle and square
 			if (apertureType == 1 || apertureType == 3) {
-				horizontalAxis = verticalAxis = apertureWidth/2;
+				horizontalAxis = verticalAxis = apertureWidth / 2;
 			}
 			//For ellipse and rectangle
 			else if (apertureType == 2 || apertureType == 4) {
@@ -399,31 +193,11 @@ jsPsych.plugins["RDK"] = (function() {
 				verticalAxis = apertureHeight / 2;
 			}
 		}
-		//shuffle elements in the array
-		function shuffleArray(array) {
-			var currentIndex = array.length, temporaryValue, randomIndex;
-	
-			// While there remain elements to shuffle...
-			while (0 !== currentIndex) {
-	
-			// Pick a remaining element...
-			randomIndex = Math.floor(Math.random() * currentIndex);
-			currentIndex -= 1;
-	
-			// And swap it with the current element.
-			temporaryValue = array[currentIndex];
-			array[currentIndex] = array[randomIndex];
-			array[randomIndex] = temporaryValue;
-			}
-	
-			return array;
-		}
+
 		//Make the 2d array, which is an array of array of dots
 		function makeDotArray2d() {
 			//Declare an array to hold the sets of dot arrays
-			var tempArray = [];
-			var colorArray = Array(nCorrectColor).fill(1).concat(Array(nIncorrectColor).fill(0));
-			colorArray = shuffleArray(colorArray);
+			var tempArray = []
 			//Loop for each set of dot array
 			for (var i = 0; i < nSets; i++) {
 				tempArray.push(makeDotArray()); //Make a dot array and push it into the 2d array
@@ -431,10 +205,32 @@ jsPsych.plugins["RDK"] = (function() {
 
 			return tempArray;
 		}
+    
+    //shuffle elements in the array
+    function shuffleArray(array) {
+      var currentIndex = array.length, temporaryValue, randomIndex;
+
+      // While there remain elements to shuffle...
+      while (0 !== currentIndex) {
+
+        // Pick a remaining element...
+        randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex -= 1;
+
+        // And swap it with the current element.
+        temporaryValue = array[currentIndex];
+        array[currentIndex] = array[randomIndex];
+        array[randomIndex] = temporaryValue;
+      }
+
+      return array;
+    }
 
 		//Make the dot array
 		function makeDotArray() {
 			var tempArray = []
+      var colorArray = Array(nCorrectColor).fill(1).concat(Array(nIncorrectColor).fill(0))
+      colorArray = shuffleArray(colorArray)
 			for (var i = 0; i < nDots; i++) {
 				//Initialize a dot to be modified and inserted into the array
 				var dot = {
@@ -448,8 +244,8 @@ jsPsych.plugins["RDK"] = (function() {
 					latestYMove: 0, //Stores the latest y move direction for the dot (to be used in reinsertOnOppositeEdge function below)
 					lifeCount: Math.floor(randomNumberBetween(0, dotLife)), //Counter for the dot's life. Updates every time it is shown in a frame
 					updateType: "", //String to determine how this dot is updated
-					color: dotColor
-				};
+          color: dotColor
+				}
 				//randomly set the x and y coordinates
 				dot = resetLocation(dot);
 
@@ -515,27 +311,30 @@ jsPsych.plugins["RDK"] = (function() {
 					setvx2vy2(dot); // Set dot.vx2 and dot.vy2
 					dot.updateType = "constant direction or random direction";
 				} //End of RDK==6
-				//For the same && random direction RDK type and different colors
-				if (RDK == 7) {
-					//For coherent dots
-					if (i < nCoherentDots) {
-					dot = setvxvy(dot); // Set dot.vx and dot.vy
-					dot.updateType = "constant direction";
-					}
-					//For incoherent dots
-					else {
-					setvx2vy2(dot); // Set dot.vx2 and dot.vy2
-					dot.updateType = "random direction";
-					}
-					
-					if (colorArray[i] == 1) {
-					dot.color = correctColor;
-					}
-					else {
-					dot.color = incorrectColor;
-					}
-		
-				} //End of RDK==7
+        
+        //For the same && random direction RDK type and different colors
+        if (RDK == 7) {
+
+          //For coherent dots
+          if (i < nCoherentDots) {
+            dot = setvxvy(dot); // Set dot.vx and dot.vy
+            dot.updateType = "constant direction";
+          }
+          //For incoherent dots
+          else {
+            setvx2vy2(dot); // Set dot.vx2 and dot.vy2
+            dot.updateType = "random direction";
+          }
+          
+          if (colorArray[i] == 1) {
+            dot.color = correctColor;
+          }
+          else {
+            dot.color = incorrectColor;
+          }
+
+        } //End of RDK==7
+
 				tempArray.push(dot);
 			} //End of for loop
 			return tempArray;
@@ -543,8 +342,10 @@ jsPsych.plugins["RDK"] = (function() {
 
 		//Draw the dots on the canvas after they're updated
 		function draw() {
+      
 			//Clear the canvas to draw new dots
 			ctx.clearRect(0, 0, width, height)
+      
 			//Loop through the dots one by one and draw them
 			for (var i = 0; i < nDots; i++) {
 				dot = dotArray[i];
@@ -554,25 +355,26 @@ jsPsych.plugins["RDK"] = (function() {
 				ctx.fill();
 			}
       
-		    //Draw the fixation cross if we want it
-		    if(fixationCross === true){
-		      
-		      //Horizontal line
-		      ctx.beginPath();
-		      ctx.lineWidth = fixationCrossThickness;
-		      ctx.moveTo(width/2 - fixationCrossWidth, height/2);
-		      ctx.lineTo(width/2 + fixationCrossWidth, height/2);
-		      ctx.fillStyle = fixationCrossColor;
-		      ctx.stroke();
-		      
-		      //Vertical line
-		      ctx.beginPath();
-		      ctx.lineWidth = fixationCrossThickness;
-		      ctx.moveTo(width/2, height/2 - fixationCrossHeight);
-		      ctx.lineTo(width/2, height/2 + fixationCrossHeight);
-		      ctx.fillStyle = fixationCrossColor;
-		      ctx.stroke();
-		    }
+      //Draw the fixation cross if we want it
+      if(fixationCross === true){
+        
+        //Horizontal line
+        ctx.beginPath();
+        ctx.lineWidth = fixationCrossThickness;
+        ctx.moveTo(width/2 - fixationCrossWidth, height/2);
+        ctx.lineTo(width/2 + fixationCrossWidth, height/2);
+        ctx.fillStyle = fixationCrossColor;
+        ctx.stroke();
+        
+        //Vertical line
+        ctx.beginPath();
+        ctx.lineWidth = fixationCrossThickness;
+        ctx.moveTo(width/2, height/2 - fixationCrossHeight);
+        ctx.lineTo(width/2, height/2 + fixationCrossHeight);
+        ctx.fillStyle = fixationCrossColor;
+        ctx.stroke();
+      }
+      
 		}
 
 		//Update the dots with their new location
@@ -810,25 +612,25 @@ jsPsych.plugins["RDK"] = (function() {
 		//Calculate the POSITIVE y value of a point on the edge of the ellipse given an x-value
 		function yValuePositive(x) {
 			var x = x - (apertureCenterX); //Bring it back to the (0,0) center to calculate accurately (ignore the y-coordinate because it is not necessary for calculation)
-			return verticalAxis * Math.sqrt(1 - (Math.pow(x, 2) / Math.pow(horizontalAxis, 2))) + apertureCenterY; //Calculated the positive y value and added apertureCenterY to recenter it on the screen 
+			return verticalAxis * Math.sqrt(1 - (Math.pow(x, 2) / Math.pow(horizontalAxis, 2))) + apertureCenterY; //Calculated the positive y value and added height/2 to recenter it on the screen 
 		}
 
 		//Calculate the NEGATIVE y value of a point on the edge of the ellipse given an x-value
 		function yValueNegative(x) {
 			var x = x - (apertureCenterX); //Bring it back to the (0,0) center to calculate accurately (ignore the y-coordinate because it is not necessary for calculation)
-			return -verticalAxis * Math.sqrt(1 - (Math.pow(x, 2) / Math.pow(horizontalAxis, 2))) + apertureCenterY; //Calculated the negative y value and added apertureCenterY to recenter it on the screen
+			return -verticalAxis * Math.sqrt(1 - (Math.pow(x, 2) / Math.pow(horizontalAxis, 2))) + apertureCenterY; //Calculated the negative y value and added height/2 to recenter it on the screen
 		}
 
 		//Calculate the POSITIVE x value of a point on the edge of the ellipse given a y-value
 		function xValuePositive(y) {
 			var y = y - (apertureCenterY); //Bring it back to the (0,0) center to calculate accurately (ignore the x-coordinate because it is not necessary for calculation)
-			return horizontalAxis * Math.sqrt(1 - (Math.pow(y, 2) / Math.pow(verticalAxis, 2))) + apertureCenterX; //Calculated the positive x value and added apertureCenterX to recenter it on the screen
+			return horizontalAxis * Math.sqrt(1 - (Math.pow(y, 2) / Math.pow(verticalAxis, 2))) + apertureCenterX; //Calculated the positive x value and added width/2 to recenter it on the screen
 		}
 
 		//Calculate the NEGATIVE x value of a point on the edge of the ellipse given a y-value
 		function xValueNegative(y) {
 			var y = y - (apertureCenterY); //Bring it back to the (0,0) center to calculate accurately (ignore the x-coordinate because it is not necessary for calculation)
-			return -horizontalAxis * Math.sqrt(1 - (Math.pow(y, 2) / Math.pow(verticalAxis, 2))) + apertureCenterX; //Calculated the negative x value and added apertureCenterX to recenter it on the screen
+			return -horizontalAxis * Math.sqrt(1 - (Math.pow(y, 2) / Math.pow(verticalAxis, 2))) + apertureCenterX; //Calculated the negative x value and added width/2 to recenter it on the screen
 		}
 
 		//Calculate a random x and y coordinate in the ellipse
@@ -866,13 +668,7 @@ jsPsych.plugins["RDK"] = (function() {
 		function animateDotMotion() {
 			//frameRequestID saves a long integer that is the ID of this frame request. The ID is then used to terminate the request below.
 			var frameRequestID = window.requestAnimationFrame(animate);
-			
-			//Start to listen to subject's key responses
-			startKeyboardListener(); 
-									
-			//Delare a timestamp
-			var previousTimestamp;
-			
+		
 			function animate() {
 				//If stopping condition has been reached, then stop the animation
 				if (stopDotMotion) {
@@ -880,44 +676,47 @@ jsPsych.plugins["RDK"] = (function() {
 				}
 				//Else continue with another frame request
 				else {
-					frameRequestID = window.requestAnimationFrame(animate); //Calls for another frame request
-					
-					//If the timer has not been started and it is set, then start the timer
-					if ( (!timerHasStarted) && (trial.trial_duration > 0) ){
-						//If the trial duration is set, then set a timer to count down and call the end_trial function when the time is up
-						//(If the subject did not press a valid keyboard response within the trial duration, then this will end the trial)
-						timeoutID = window.setTimeout(end_trial,trial.trial_duration); //This timeoutID is then used to cancel the timeout should the subject press a valid key
-						//The timer has started, so we set the variable to true so it does not start more timers
-						timerHasStarted = true;
-					}
-					
 					updateDots(); //Update the dots to their new positions
 					draw(); //Draw the dots on the canvas
-					
-					//If this is before the first frame, then start the timestamp
-					if(previousTimestamp === undefined){
-						previousTimestamp = performance.now();
-					}
-					//Else calculate the time and push it into the array
-					else{
-						var currentTimeStamp = performance.now(); //Variable to hold current timestamp
-						frameRate.push(currentTimeStamp - previousTimestamp); //Push the interval into the frameRate array
-						previousTimestamp = currentTimeStamp; //Reset the timestamp
-					}
+					frameRequestID = window.requestAnimationFrame(animate); //Calls for another frame request
 				}
 			}
 		}
+    //Draw the dots on the canvas after they're updated
+		function drawShape(shape, shapeColor) {
 
-		//----RDK Functions End----
+      ctx.beginPath();
+      var centerX = canvas.width / 2;
+      var centerY = canvas.height / 2;
+      if (shape == 1){
+        //draw a circle
+        ctx.arc(centerX,centerY,50,0,2*Math.PI);
+      }
+      else if (shape == 2){
+        //draw a rectangle
+        
+        ctx.rect(centerX-50,centerY-35,100,70);
+      }
+      else if (shape == 3){
+        //draw a triangle
+        ctx.moveTo(centerX, centerY-45);
+        ctx.lineTo(centerX+60, centerY+30);
+        ctx.lineTo(centerX-60, centerY+30);
+      }
+      else if (shape == 4){
+        //draw a diamond
+        ctx.moveTo(centerX+45, centerY);
+        ctx.lineTo(centerX, centerY-55);
+        ctx.lineTo(centerX-45, centerY);
+        ctx.lineTo(centerX, centerY+55);
+      }
+      ctx.fillStyle = shapeColor;
+      ctx.strokeStyle = shapeColor;
+      ctx.fill();
+      ctx.stroke();
+      }
+      
 
-
-		//-------------------------------------
-		//-----------FUNCTIONS END-------------
-		//-------------------------------------
-
-
-	}; // END OF TRIAL
-
-	//Return the plugin object which contains the trial
-	return plugin;
-})();
+//-------------------------------------
+//-----------FUNCTIONS END-------------
+//-------------------------------------
