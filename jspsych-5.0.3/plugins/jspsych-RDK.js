@@ -65,6 +65,10 @@ jsPsych.plugins["RDK"] = (function() {
 		trial.fixation_cross_color = trial.fixation_cross_color || "black";
 		trial.fixation_cross_thickness = trial.fixation_cross_thickness || 1; 
 		
+		//parameters for colored experiment
+		trial.correctColor = trial.correctColor || 'red';
+		trial.incorrectColor = trial.incorrectColor || 'blue';
+		trial.colorCoherence = trial.colorCoherence || 0;
 		//Coherence can be zero, but logical operators evaluate it to false. So we do it manually
 		if(typeof trial.coherence === 'undefined'){
 			trial.coherence = 0.5;
@@ -395,11 +399,31 @@ jsPsych.plugins["RDK"] = (function() {
 				verticalAxis = apertureHeight / 2;
 			}
 		}
-
+		//shuffle elements in the array
+		function shuffleArray(array) {
+			var currentIndex = array.length, temporaryValue, randomIndex;
+	
+			// While there remain elements to shuffle...
+			while (0 !== currentIndex) {
+	
+			// Pick a remaining element...
+			randomIndex = Math.floor(Math.random() * currentIndex);
+			currentIndex -= 1;
+	
+			// And swap it with the current element.
+			temporaryValue = array[currentIndex];
+			array[currentIndex] = array[randomIndex];
+			array[randomIndex] = temporaryValue;
+			}
+	
+			return array;
+		}
 		//Make the 2d array, which is an array of array of dots
 		function makeDotArray2d() {
 			//Declare an array to hold the sets of dot arrays
-			var tempArray = []
+			var tempArray = [];
+			var colorArray = Array(nCorrectColor).fill(1).concat(Array(nIncorrectColor).fill(0));
+			colorArray = shuffleArray(colorArray);
 			//Loop for each set of dot array
 			for (var i = 0; i < nSets; i++) {
 				tempArray.push(makeDotArray()); //Make a dot array and push it into the 2d array
@@ -423,7 +447,8 @@ jsPsych.plugins["RDK"] = (function() {
 					latestXMove: 0, //Stores the latest x move direction for the dot (to be used in reinsertOnOppositeEdge function below)
 					latestYMove: 0, //Stores the latest y move direction for the dot (to be used in reinsertOnOppositeEdge function below)
 					lifeCount: Math.floor(randomNumberBetween(0, dotLife)), //Counter for the dot's life. Updates every time it is shown in a frame
-					updateType: "" //String to determine how this dot is updated
+					updateType: "", //String to determine how this dot is updated
+					color: dotColor
 				};
 				//randomly set the x and y coordinates
 				dot = resetLocation(dot);
@@ -490,7 +515,27 @@ jsPsych.plugins["RDK"] = (function() {
 					setvx2vy2(dot); // Set dot.vx2 and dot.vy2
 					dot.updateType = "constant direction or random direction";
 				} //End of RDK==6
-
+				//For the same && random direction RDK type and different colors
+				if (RDK == 7) {
+					//For coherent dots
+					if (i < nCoherentDots) {
+					dot = setvxvy(dot); // Set dot.vx and dot.vy
+					dot.updateType = "constant direction";
+					}
+					//For incoherent dots
+					else {
+					setvx2vy2(dot); // Set dot.vx2 and dot.vy2
+					dot.updateType = "random direction";
+					}
+					
+					if (colorArray[i] == 1) {
+					dot.color = correctColor;
+					}
+					else {
+					dot.color = incorrectColor;
+					}
+		
+				} //End of RDK==7
 				tempArray.push(dot);
 			} //End of for loop
 			return tempArray;
@@ -505,7 +550,7 @@ jsPsych.plugins["RDK"] = (function() {
 				dot = dotArray[i];
 				ctx.beginPath();
 				ctx.arc(dot.x, dot.y, dotRadius, 0, Math.PI * 2);
-				ctx.fillStyle = dotColor;
+				ctx.fillStyle = dot.color;
 				ctx.fill();
 			}
       
