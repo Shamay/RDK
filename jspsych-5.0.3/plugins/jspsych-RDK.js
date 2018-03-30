@@ -70,6 +70,11 @@ jsPsych.plugins["RDK"] = (function() {
 			trial.coherence = 0.5;
 		}
 
+		//Color coherence can be zero, but logical operators evaluate it to false. So we do it manually
+		if(typeof trial.colorCoherence === 'undefined'){
+			trial.colorCoherence = 0.6;
+		}
+
 		//Logical operators won't work for boolean parameters like they do for non-boolean parameters above, so we do it manually
 		if (typeof trial.response_ends_trial === 'undefined') {
 			trial.response_ends_trial = true;
@@ -82,16 +87,18 @@ jsPsych.plugins["RDK"] = (function() {
 
 		//Convert the parameter variables to those that the code below can use
 		var experiment = 'dots'; //dots or shapes
+
 		var shape = 1; //1: circle, 2: rectangle, 3: triangle, 4: diamond
 		var shapeColor = 'yellow';
-		var colorCoherence = 0.6;
-		var correctColor = 'yellow';
-		var incorrectColor = 'blue';
+
+		var correctColor = 'blue';
+		var incorrectColor = 'red';
 
 		var nDots = trial.number_of_dots; //Number of dots per set (equivalent to number of dots per frame)
 		var nSets = trial.number_of_sets; //Number of sets to cycle through per frame
 		var coherentDirection = trial.coherent_direction; //The direction of the coherentDots in degrees. Starts at 3 o'clock and goes counterclockwise (0 == rightwards, 90 == upwards, 180 == leftwards, 270 == downwards), range 0 - 360
 		var coherence = trial.coherence; //Proportion of dots to move together, range from 0 to 1
+		var colorCoherence = trial.colorCoherence; //Proportion of dots to of the same color, range from 0 to 1
 		var dotRadius = trial.dot_radius; //Radius of each dot in pixels
 		var dotLife = trial.dot_life; //How many frames a dot will keep following its trajectory before it is redrawn at a random location. -1 denotes infinite life (the dot will only be redrawn if it reaches the end of the aperture).
 		var moveDistance = trial.move_distance; //How many pixels the dots move per frame
@@ -165,7 +172,6 @@ jsPsych.plugins["RDK"] = (function() {
 		//Create a canvas element and append it to the DOM
 		var canvas = document.createElement("canvas");
 		display_element.append(canvas); //'append' is the jQuery equivalent of 'appendChild' in the DOM method
-
 
 		//The document body IS 'display_element' (i.e. <body class="jspsych-display-element"> .... </body> )
 		var body = document.getElementsByClassName("jspsych-display-element")[0];
@@ -287,6 +293,11 @@ jsPsych.plugins["RDK"] = (function() {
 			//Stop the dot motion animation
 			stopDotMotion = true;
 
+			// reset timeoutID at the end of trial
+			if (trial.response_ends_trial == 'false') {
+				window.clearTimeout(timeoutID);
+			}
+
 			//Store the number of frames
 			numberOfFrames = frameRate.length;
 
@@ -317,7 +328,8 @@ jsPsych.plugins["RDK"] = (function() {
 				"number_of_dots": trial.number_of_dots,
 				"number_of_sets": trial.number_of_sets,
 				"coherent_direction": trial.coherent_direction,
-				"coherence": trial.coherence,
+				"motionCoherence": trial.coherence,
+				"colorCoherence": trial.colorCoherence,
 				"dot_radius": trial.dot_radius,
 				"dot_life": trial.dot_life,
 				"move_distance": trial.move_distance,
@@ -348,7 +360,9 @@ jsPsych.plugins["RDK"] = (function() {
 		function after_response(info) {
 
 			//Kill the timeout if the subject has responded within the time given
-			window.clearTimeout(timeoutID);
+			if (trial.response_ends_trial == 'true') {
+				window.clearTimeout(timeoutID);
+			}
 
 			//If the response has not been recorded, record it
 			if (response.key == -1) {
@@ -356,7 +370,7 @@ jsPsych.plugins["RDK"] = (function() {
 			}
 
 			//If the parameter is set such that the response ends the trial, then end the trial
-			if (trial.response_ends_trial) {
+			if (trial.response_ends_trial == 'true') {
 				end_trial();
 			}
 
