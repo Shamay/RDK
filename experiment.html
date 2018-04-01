@@ -67,6 +67,8 @@
 
 		//---------Create trials---------
 
+
+
 		//convert vertical/horizontal to degree notation
 		var degrees;
 		if (config.coherentDirection ==  'verticalAxis'){
@@ -75,20 +77,52 @@
 			degrees = 180
 		}
 
-		//Create an array of 4 different trials (different conditions)
-		var RDK_trial = [
+		// randomize either coherent direction or colors
+		var randomizer = function(method) {
+  		rand = Math.floor(Math.random() * 2);
+			if(method == "motion"){
+				return rand;
+			}else if(method == "color"){
+				if(rand == 0){
+					return "blue"
+				}else if(rand == 1){
+					return "red"
+				}
+			}
+		}
+
+		//Create an array of 2 different trials (different conditions)
+		var motion_trial = [
 			{//Condition 1
 				correct_choice: "a", //The correct answer for Condition 1
-				coherent_direction: degrees //The coherent direction for Condition 1 (dots move down/left)
+				coherent_direction: degrees, //The coherent direction for Condition 1 (dots move down/left)
+				coherent_color: randomizer("color") // randomize coherent color
 			},
 			{//Condition 2
 				correct_choice: "l", //The correct answer for Condition 2
-				coherent_direction: degrees + 180 //The coherent direction for Condition 2 (dots move up/right)
+				coherent_direction: degrees + 180, //The coherent direction for Condition 2 (dots move up/right)
+				coherent_color: randomizer("color") // randomize coherent color
+			}
+		];
+
+		var color_trial = [
+			{//Condition 3
+				correct_choice: "a", //The correct answer for Condition 3
+				coherent_direction: degrees + 180 * randomizer("motion"), // randomize coherent direction
+				coherent_color: "red" //The coherent color for Condition 3
 			},
+			{//Condition 4
+				correct_choice: "l", //The correct answer for Condition 4
+				coherent_direction: degrees + 180 * randomizer("motion"),  // randomize coherent direction
+				coherent_color: "blue" //The coherent color for Condition 4
+			}
 		];
 
 		//Multiply based on how many trials you need and randomize the trial order
-		var all_trials = jsPsych.randomization.repeat(RDK_trial,2); //Double the number of trials and shuffle them
+		var all_trials = jsPsych.randomization.repeat(color_trial,2); //Double the number of trials and shuffle them
+	  //all_trials.push(jsPsych.randomization.repeat(motion_trial,2));
+		//all_trials.push(jsPsych.randomization.repeat(color_trial,2));
+
 
 		//The test block where all the trials are nested. The properties here will trickle down to all trials in the timeline unless they have their own properties defined
 		var test_block = {
@@ -99,6 +133,7 @@
 
 			number_of_dots: config.number_of_dots, //Total number of dots in the aperture
 			response_ends_trial: config.response_ends_trial, //Whether response ends the trial or not
+			fill_ITT: config.fill_ITT, // Whether to standardize trial length or not, condition on response_ends_trial being true
 			trial_duration: config.trial_duration, //Duration of each trial in ms
 			timing_post_trial: config.inter_trial_interval, //The Inter Trial Interval.
 			coherence: config.motionCoherence,

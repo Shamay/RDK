@@ -1,15 +1,16 @@
 [
   {
-    "number_of_dots": "200",
+    "number_of_dots": 200,
 
-    "coherentDirection": "horizontalAxis",
+    "coherentDirection": "verticalAxis",
 
-    "response_ends_trial": "true",
+    "response_ends_trial": true,
+    "fill_ITT": false,
 
-    "trial_duration": "1000",
-    "inter_trial_interval": "0",
+    "trial_duration": 1000,
+    "inter_trial_interval": 1000,
 
-    "motionCoherence": "0.5",
-    "colorCoherence": "0.2"
+    "motionCoherence": 0.7,
+    "colorCoherence": 0.7
   }
 ]

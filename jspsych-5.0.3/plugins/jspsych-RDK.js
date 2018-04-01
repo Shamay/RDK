@@ -44,9 +44,11 @@ jsPsych.plugins["RDK"] = (function() {
 		trial.choices = trial.choices || [];
 		trial.correct_choice = trial.correct_choice;
 		trial.trial_duration = trial.trial_duration || 500;
+		trial.timing_post_trial = trial.timing_post_trial || 500;
 		trial.number_of_dots = trial.number_of_dots || 300;
 		trial.number_of_sets = trial.number_of_sets || 1;
 		trial.coherent_direction = trial.coherent_direction || 0;
+		trial.coherent_color = trial.coherent_color || 'blue'; //The correct color choice.
 		trial.dot_radius = trial.dot_radius || 2;
 		trial.dot_life = trial.dot_life || -1;
 		trial.move_distance = trial.move_distance || 1;
@@ -79,6 +81,9 @@ jsPsych.plugins["RDK"] = (function() {
 		if (typeof trial.response_ends_trial === 'undefined') {
 			trial.response_ends_trial = true;
 		}
+		if(typeof trial.fill_ITT === 'undefined'){
+			trial.fill_ITT = false;
+		}
 
 		//For square and circle, set the aperture height == aperture width
 		if (apertureType == 1 || apertureType == 3) {
@@ -91,8 +96,14 @@ jsPsych.plugins["RDK"] = (function() {
 		var shape = 1; //1: circle, 2: rectangle, 3: triangle, 4: diamond
 		var shapeColor = 'yellow';
 
-		var correctColor = 'blue';
-		var incorrectColor = 'red';
+		var incorrectColor, correctColor;
+		if (trial.coherent_color == 'blue'){
+			var correctColor = 'blue';
+			var incorrectColor = 'red';
+		}else{
+			var correctColor = 'red';
+			var incorrectColor = 'blue';
+		}
 
 		var nDots = trial.number_of_dots; //Number of dots per set (equivalent to number of dots per frame)
 		var nSets = trial.number_of_sets; //Number of sets to cycle through per frame
@@ -294,7 +305,7 @@ jsPsych.plugins["RDK"] = (function() {
 			stopDotMotion = true;
 
 			// reset timeoutID at the end of trial
-			if (trial.response_ends_trial == 'false') {
+			if (!trial.response_ends_trial) {
 				window.clearTimeout(timeoutID);
 			}
 
@@ -328,6 +339,7 @@ jsPsych.plugins["RDK"] = (function() {
 				"number_of_dots": trial.number_of_dots,
 				"number_of_sets": trial.number_of_sets,
 				"coherent_direction": trial.coherent_direction,
+				"coherent_color": trial.coherent_color,
 				"motionCoherence": trial.coherence,
 				"colorCoherence": trial.colorCoherence,
 				"dot_radius": trial.dot_radius,
@@ -360,7 +372,7 @@ jsPsych.plugins["RDK"] = (function() {
 		function after_response(info) {
 
 			//Kill the timeout if the subject has responded within the time given
-			if (trial.response_ends_trial == 'true') {
+			if (trial.response_ends_trial) {
 				window.clearTimeout(timeoutID);
 			}
 
@@ -369,8 +381,13 @@ jsPsych.plugins["RDK"] = (function() {
 				response = info; //Replace the response object created above
 			}
 
+			if(trial.fill_ITT){
+				trial.timing_post_trial = trial.timing_post_trial + (trial.trial_duration - response.rt)
+			}
+
+
 			//If the parameter is set such that the response ends the trial, then end the trial
-			if (trial.response_ends_trial == 'true') {
+			if (trial.response_ends_trial) {
 				end_trial();
 			}
 
