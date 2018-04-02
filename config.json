@@ -8,9 +8,10 @@
     "fill_ITT": false,
 
     "trial_duration": 1000,
-    "inter_trial_interval": 1000,
+    "inter_trial_interval": 0,
+    "fixation_cross": false,
 
-    "motionCoherence": 0.7,
-    "colorCoherence": 0.7
+    "motionCoherence": 0.95,
+    "colorCoherence": 0.95
   }
 ]

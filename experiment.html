@@ -1,8 +1,7 @@
-<! doctype html>
+<!DOCTYPE html>
 <html>
-	<head>
-
-		<!--
+  <head>
+    <!--
 
 		RDK plugin for JsPsych
 		----------------------
@@ -29,50 +28,51 @@
 
 		-->
 
-		<title> RDK Experiment</title>
-		 <script src = "https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
-		 <script src = "jspsych-5.0.3/jspsych.js"></script>
-		 <script src = "jspsych-5.0.3/plugins/jspsych-RDK.js"></script> <!--Include the script for the RDK plugin-->
-		 <script src = "jspsych-5.0.3/plugins/jspsych-text.js"></script>
-		 <link href = "jspsych-5.0.3/css/jspsych.css" rel = "stylesheet" type = "text/css"></link>
-	</head>
-	<body>
-	</body>
-	<script>
+    <title>Dot Motion Task</title>
+      <script src = "https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+      <script src="jspsych-6.0.1/jspsych.js"></script>
+      <script src="jspsych-6.0.1/jspsych-6.0.1/plugins/jspsych-html-keyboard-response.js"></script>
+      <script src="jspsych-6.0.1/jspsych-6.0.1/plugins/jspsych-instructions.js"></script>
+      <script src="jspsych-6.0.1/jspsych-6.0.1/plugins/jspsych-dotmotion.js"></script>
+      <link href="jspsych-6.0.1/css/jspsych.css" rel="stylesheet" type="text/css"></link>
+  </head>
+  <body></body>
+  <script>
 
-		//Loading config file synchronously
-		var config;
+    //The main timeline to be fed into jsPsych.init
+    var timeline = [];
 
-		$.ajax({
-			url: 'config.json',
-			async: false,
-			dataType: 'json',
-			success: function (response) {
-				config = response[0]
-			}
-		});
+    //Loading config file synchronously
+    var config;
 
-		//---------Create instructions---------
+    $.ajax({
+      url: 'config.json',
+      async: false,
+      dataType: 'json',
+      success: function (response) {
+        config = response[0]
+      }
+    });
 
-		var instructions_block = {
-			type: "text",
-			text: "<p> This is a sample experiment for the RDK plugin.</p>" +
-			"<p> On each trial, half the dots will be moving in a coherent direction (left or right) and the other half will move randomly.</p>" +
-			"<p> Before the end of the trial, determine if the dots are moving left or right.</p>" +
-			"<p> If the dots are moving left, press the 'A' key. If the dots are moving right, press the 'L' key.</p>" +
-			"<p> There are 4 trials and each trial will last 1000ms.</p>" +
-			"<p> After all 4 trials have ended, the data will be displayed on the screen and a copy will be saved locally in a .csv file.</p>"  +
-			"<p> Press any key to continue.</p>"
-		}
+    /* define instructions block */
+    var instructions = {
+      type: 'instructions',
+      pages: [
+          'Welcome to the experiment. Click next to begin.',
+          'This is the second page of instructions.',
+          'This is the final page.'
+      ],
+      show_clickable_nav: true,
+      post_trial_gap: 1000
+    };
+    timeline.push(instructions);
 
-		//---------Create trials---------
-
-
+    //---------Create trials---------
 
 		//convert vertical/horizontal to degree notation
 		var degrees;
 		if (config.coherentDirection ==  'verticalAxis'){
-			degrees = 90
+			degrees = 270
 		}else if (config.coherentDirection ==  "horizontalAxis") {
 			degrees = 180
 		}
@@ -91,75 +91,82 @@
 			}
 		}
 
-		//Create an array of 2 different trials (different conditions)
-		var motion_trial = [
-			{//Condition 1
-				correct_choice: "a", //The correct answer for Condition 1
+    //Create an array of all the different trials we want to run in the test phase
+    var test_stimuli = [
+      {// Motion trial 1
+        task: 'direction',
+        correct_response: 'a', //The correct answer for Condition 2
 				coherent_direction: degrees, //The coherent direction for Condition 1 (dots move down/left)
 				coherent_color: randomizer("color") // randomize coherent color
 			},
-			{//Condition 2
-				correct_choice: "l", //The correct answer for Condition 2
-				coherent_direction: degrees + 180, //The coherent direction for Condition 2 (dots move up/right)
+			{// Motion trial 2
+				task: 'direction',
+        correct_response: 'l', //The correct answer for Condition 2
+				coherent_direction: degrees - 180, //The coherent direction for Condition 2 (dots move up/right)
 				coherent_color: randomizer("color") // randomize coherent color
-			}
-		];
-
-		var color_trial = [
-			{//Condition 3
-				correct_choice: "a", //The correct answer for Condition 3
-				coherent_direction: degrees + 180 * randomizer("motion"), // randomize coherent direction
+			},
+      {// Color Trial 1
+			  task: 'color',
+        correct_response: 'a', //The correct answer for Condition 3
+				coherent_direction: degrees - 180 * randomizer("motion"), // randomize coherent direction
 				coherent_color: "red" //The coherent color for Condition 3
 			},
-			{//Condition 4
-				correct_choice: "l", //The correct answer for Condition 4
-				coherent_direction: degrees + 180 * randomizer("motion"),  // randomize coherent direction
+			{// Color Trial 2
+				task: 'color',
+        correct_response: 'l', //The correct answer for Condition 4
+				coherent_direction: degrees - 180 * randomizer("motion"),  // randomize coherent direction
 				coherent_color: "blue" //The coherent color for Condition 4
 			}
-		];
+    ]
 
-		//Multiply based on how many trials you need and randomize the trial order
-		var all_trials = jsPsych.randomization.repeat(color_trial,2); //Double the number of trials and shuffle them
-	  //all_trials.push(jsPsych.randomization.repeat(motion_trial,2));
-		//all_trials.push(jsPsych.randomization.repeat(color_trial,2));
+    var fixation = {
+      type: 'html-keyboard-response',
+      stimulus: '<div style="font-size:60px;">+</div>',
+      choices: jsPsych.NO_KEYS,
+      trial_duration: 1000,
+    }
 
+    var test = {
+      type: "dotmotion",
+      RDK_type: 3, //The type of RDK used
+      choices: ['a', 'l'], //Choices available to be keyed in by participant
 
-		//The test block where all the trials are nested. The properties here will trickle down to all trials in the timeline unless they have their own properties defined
-		var test_block = {
-			type: "RDK",
-		  RDK_type: 7, //The type of RDK used
-			choices: ["a", "l"], //Choices available to be keyed in by participant
-			timeline: all_trials, //The timeline of all the trials
+      task: jsPsych.timelineVariable('task'),
+      correct_choice: jsPsych.timelineVariable('correct_response'),
+      coherent_direction: jsPsych.timelineVariable('coherent_direction'),
+      coherent_color: jsPsych.timelineVariable('coherent_color'),
 
-			number_of_dots: config.number_of_dots, //Total number of dots in the aperture
-			response_ends_trial: config.response_ends_trial, //Whether response ends the trial or not
+      number_of_dots: config.number_of_dots, //Total number of dots in the aperture
+
+      response_ends_trial: config.response_ends_trial, //Whether response ends the trial or not
 			fill_ITT: config.fill_ITT, // Whether to standardize trial length or not, condition on response_ends_trial being true
 			trial_duration: config.trial_duration, //Duration of each trial in ms
-			timing_post_trial: config.inter_trial_interval, //The Inter Trial Interval.
-			coherence: config.motionCoherence,
+      post_trial_gap: config.inter_trial_interval, //The Inter Trial Interval.
+      fixation_cross: config.fixation_cross, // Whether or not to include fixation cross
+
+			motionCoherence: config.motionCoherence,
 			colorCoherence: config.colorCoherence
-		}
 
+    }
 
-		//---------Prepare the main timeline---------
-
-		//The main timeline to be fed into jsPsych.init
-		var main_timeline = [];
-		main_timeline.push(instructions_block);
-		main_timeline.push(test_block);
-
-
+    var test_procedure = {
+      timeline: [fixation, test],
+      timeline_variables: test_stimuli,
+      randomize_order: true,
+      repetitions: 1
+    }
+    timeline.push(test_procedure);
 
 		//---------Run the experiment---------
 
 		//Initiate the experiment
 		jsPsych.init({
-			timeline: main_timeline,
+			timeline: timeline,
 			on_finish: function(){ //Execute this when the experiment finishes
 				//jsPsych.data.localSave('testSave.csv', 'csv'); //Save the data locally in a .csv file
 				jsPsych.data.displayData(); //Display the data onto the browser screen
 			}
 		})
 
-	</script>
-</html>
+  </script>
+  </html>
