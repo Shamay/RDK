@@ -36,11 +36,6 @@ jsPsych.plugins["dotmotion"] = (function() {
 		trial.reinsert_type = trial.reinsert_type || 2;
 		trial.aperture_center_x = trial.aperture_center_x || window.innerWidth/2;
 		trial.aperture_center_y = trial.aperture_center_y || window.innerHeight/2;
-		trial.fixation_cross = trial.fixation_cross || false;
-		trial.fixation_cross_width = trial.fixation_cross_width || 20;
-		trial.fixation_cross_height = trial.fixation_cross_height || 20;
-		trial.fixation_cross_color = trial.fixation_cross_color || "black";
-		trial.fixation_cross_thickness = trial.fixation_cross_thickness || 1;
 
 		//Coherence can be zero, but logical operators evaluate it to false. So we do it manually
 		if(typeof trial.motionCoherence === 'undefined'){
@@ -134,15 +129,6 @@ jsPsych.plugins["dotmotion"] = (function() {
 		*/
 		var reinsertType = trial.reinsert_type;
 
-		//Fixation Cross Parameters
-		var fixationCross = trial.fixation_cross; true; //To display or not to display the cross
-		var fixationCrossWidth = trial.fixation_cross_width;  //The width of the fixation cross in pixels
-		var fixationCrossHeight = trial.fixation_cross_height; //The height of the fixation cross in pixels
-		var fixationCrossColor = trial.fixation_cross_color; //The color of the fixation cross
-		var fixationCrossThickness = trial.fixation_cross_thickness; //The thickness of the fixation cross, must be positive number above 1
-
-
-
 		//--------------------------------------
 		//----------SET PARAMETERS END----------
 		//--------------------------------------
@@ -235,7 +221,6 @@ jsPsych.plugins["dotmotion"] = (function() {
     //This runs the dot motion simulation, updating it according to the frame refresh rate of the screen.
     animateDotMotion();
 
-	  //drawShape(shape, shapeColor); USE FOR CUES
 
 
 		//--------RDK variables and function calls end--------
@@ -296,13 +281,15 @@ jsPsych.plugins["dotmotion"] = (function() {
 			//Place all the data to be saved from this trial in one data object
 			var trial_data = {
         "task": trial.task, //direction or color
+        "cue": trial.cue_shape, // 1, 2, 3, or 4
 				"rt": response.rt, //The response time
 				"key_press": response.key, //The key that the subject pressed
 				"correct": correctOrNot(), //If the subject response was correct
-				"choices": trial.choices, //The set of valid keys
+				//"choices": trial.choices, //The set of valid keys
 				"correct_choice": trial.correct_choice, //The correct choice
 				"trial_duration": trial.trial_duration, //The trial duration
-				"response_ends_trial": trial.response_ends_trial //If the response ends the trial
+				"response_ends_trial": trial.response_ends_trial, //If the response ends the trial
+        "fill_ITT": trial.fill_ITT //Whether to extend ITT or not, response_ends_trial must be true
 				/*
         "number_of_dots": trial.number_of_dots,
 				"number_of_sets": trial.number_of_sets,
@@ -349,11 +336,6 @@ jsPsych.plugins["dotmotion"] = (function() {
 			if (response.key == -1) {
 				response = info; //Replace the response object created above
 			}
-
-			if(trial.fill_ITT){
-				trial.post_trial_gap = trial.post_trial_gap + (trial.trial_duration - response.rt)
-			}
-
 
 			//If the parameter is set such that the response ends the trial, then end the trial
 			if (trial.response_ends_trial) {
@@ -552,25 +534,8 @@ jsPsych.plugins["dotmotion"] = (function() {
 				ctx.fill();
 			}
 
-		    //Draw the fixation cross if we want it
-		    if(fixationCross === true){
-
-		      //Horizontal line
-		      ctx.beginPath();
-		      ctx.lineWidth = fixationCrossThickness;
-		      ctx.moveTo(width/2 - fixationCrossWidth, height/2);
-		      ctx.lineTo(width/2 + fixationCrossWidth, height/2);
-		      ctx.fillStyle = fixationCrossColor;
-		      ctx.stroke();
-
-		      //Vertical line
-		      ctx.beginPath();
-		      ctx.lineWidth = fixationCrossThickness;
-		      ctx.moveTo(width/2, height/2 - fixationCrossHeight);
-		      ctx.lineTo(width/2, height/2 + fixationCrossHeight);
-		      ctx.fillStyle = fixationCrossColor;
-		      ctx.stroke();
-		    }
+      // Draw the cue
+      drawShape(trial.cue_shape, "white");
 		}
 
 		//Update the dots with their new location
@@ -911,26 +876,22 @@ jsPsych.plugins["dotmotion"] = (function() {
 		      var centerX = canvas.width / 2;
 		      var centerY = canvas.height / 2;
 		      if (shape == 1){
-			//draw a circle
-			ctx.arc(centerX,centerY,50,0,2*Math.PI);
-		      }
-		      else if (shape == 2){
-			//draw a rectangle
-
-			ctx.rect(centerX-50,centerY-35,100,70);
-		      }
-		      else if (shape == 3){
-			//draw a triangle
-			ctx.moveTo(centerX, centerY-45);
-			ctx.lineTo(centerX+60, centerY+30);
-			ctx.lineTo(centerX-60, centerY+30);
-		      }
-		      else if (shape == 4){
-			//draw a diamond
-			ctx.moveTo(centerX+45, centerY);
-			ctx.lineTo(centerX, centerY-55);
-			ctx.lineTo(centerX-45, centerY);
-			ctx.lineTo(centerX, centerY+55);
+      			   //draw a circle
+      			      ctx.arc(centerX,centerY,50,0,2*Math.PI);
+          }else if (shape == 2){
+			         //draw a rectangle
+    			        ctx.rect(centerX-50,centerY-35,100,70);
+    		  }else if (shape == 3){
+			         //draw a triangle
+            			ctx.moveTo(centerX, centerY-45);
+            			ctx.lineTo(centerX+60, centerY+30);
+            			ctx.lineTo(centerX-60, centerY+30);
+		      }else if (shape == 4){
+			         //draw a diamond
+			            ctx.moveTo(centerX+45, centerY);
+			            ctx.lineTo(centerX, centerY-55);
+			            ctx.lineTo(centerX-45, centerY);
+			            ctx.lineTo(centerX, centerY+55);
 		      }
 		      ctx.fillStyle = shapeColor;
 		      ctx.strokeStyle = shapeColor;
