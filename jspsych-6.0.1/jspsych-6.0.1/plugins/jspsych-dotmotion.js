@@ -61,6 +61,8 @@ jsPsych.plugins["dotmotion"] = (function() {
 		}
 
 		//Convert the parameter variables to those that the code below can use
+    var stage = trial.stage; // cue or task
+    var cue_shape = trial.cue_shape; // four options
 		var nDots = trial.number_of_dots; //Number of dots per set (equivalent to number of dots per frame)
 		var nSets = trial.number_of_sets; //Number of sets to cycle through per frame
 		var coherentDirection = trial.coherent_direction; //The direction of the coherentDots in degrees. Starts at 3 o'clock and goes counterclockwise (0 == rightwards, 90 == upwards, 180 == leftwards, 270 == downwards), range 0 - 360
@@ -218,8 +220,13 @@ jsPsych.plugins["dotmotion"] = (function() {
 		//Declare global variable to be defined in startKeyboardListener function and to be used in end_trial function
 		var keyboardListener;
 
-    //This runs the dot motion simulation, updating it according to the frame refresh rate of the screen.
-    animateDotMotion();
+    if (stage=='task'){
+		  //This runs the dot motion simulation, updating it according to the frame refresh rate of the screen.
+		  animateDotMotion();
+		}else if (stage =='cue'){
+      //This presents the cue
+      drawShape(cue_shape, "white");
+		}
 
 
 
@@ -280,6 +287,7 @@ jsPsych.plugins["dotmotion"] = (function() {
 
 			//Place all the data to be saved from this trial in one data object
 			var trial_data = {
+        "stage": trial.stage, // cue or task
         "task": trial.task, //direction or color
         "cue": trial.cue_shape, // 1, 2, 3, or 4
 				"rt": response.rt, //The response time
@@ -533,9 +541,6 @@ jsPsych.plugins["dotmotion"] = (function() {
 				ctx.fillStyle = dot.color;
 				ctx.fill();
 			}
-
-      // Draw the cue
-      drawShape(trial.cue_shape, "white");
 		}
 
 		//Update the dots with their new location
@@ -898,6 +903,15 @@ jsPsych.plugins["dotmotion"] = (function() {
 		      ctx.fill();
 		      ctx.stroke();
 		      }
+
+          //If the timer has not been started and it is set, then start the timer
+					if ( (!timerHasStarted) && (trial.trial_duration > 0) ){
+						//If the trial duration is set, then set a timer to count down and call the end_trial function when the time is up
+						//(If the subject did not press a valid keyboard response within the trial duration, then this will end the trial)
+						timeoutID = window.setTimeout(end_trial,trial.trial_duration); //This timeoutID is then used to cancel the timeout should the subject press a valid key
+						//The timer has started, so we set the variable to true so it does not start more timers
+						timerHasStarted = true;
+					}
 
 		//----RDK Functions End----
 

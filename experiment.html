@@ -127,6 +127,17 @@
 			}
     ]
 
+    var cue = {
+      type: "dotmotion",
+      stage: "cue", // cue or task
+      choices: jsPsych.NO_KEYS, //Choices available to be keyed in by participant
+
+      task: jsPsych.timelineVariable('task'),
+      cue_shape: jsPsych.timelineVariable('cue_shape'),
+
+      trial_duration: config.cue_duration, //Duration of each cue in ms
+    }
+
     var fixation = {
       type: 'html-keyboard-response',
       stimulus: function(){
@@ -149,6 +160,7 @@
 
     var test = {
       type: "dotmotion",
+      stage: "task", // cue or task
       RDK_type: 3, //The type of RDK used
       choices: ['a', 'l'], //Choices available to be keyed in by participant
 
@@ -176,28 +188,49 @@
       reps = seq[i].split('')[1];
       var test_procedure;
       if(type == 'M'){
+        cue_sequence = {
+          timeline: [cue, fixation, test],
+          timeline_variables: motion_stimuli,
+          randomize_order: true,
+          repetitions: 1,
+          sample: {
+            type: "without-replacement",
+            size: 1,
+          }
+        }
         test_procedure = {
           timeline: [fixation, test],
           timeline_variables: motion_stimuli,
           randomize_order: true,
-          repetitions: reps,
+          repetitions: reps - 1,
           sample: {
             type: "without-replacement",
             size: 1,
           }
         }
       }else if(type == 'C'){
+        cue_sequence = {
+          timeline: [cue, fixation, test],
+          timeline_variables: color_stimuli,
+          randomize_order: true,
+          repetitions: 1,
+          sample: {
+            type: "without-replacement",
+            size: 1,
+          }
+        }
         test_procedure = {
           timeline: [fixation, test],
           timeline_variables: color_stimuli,
           randomize_order: true,
-          repetitions: reps,
+          repetitions: reps - 1,
           sample: {
             type: "without-replacement",
             size: 1,
           }
         }
       }
+      timeline.push(cue_sequence);
       timeline.push(test_procedure);
     }
 
