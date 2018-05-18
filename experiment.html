@@ -147,11 +147,24 @@
           return '';
         }
       }(),
+
       choices: jsPsych.NO_KEYS,
       trial_duration: config.inter_trial_interval,
-      on_start: function(fixation){ // dynamically change inter_trial_interval
+
+      on_start: function(fixation){
         // get data from previous trial
         var data = jsPsych.data.get().last(1).values()[0];
+
+        // prompt whether the previous trial was correct or not
+        if(typeof data.correct === "undefined"){
+          fixation.prompt = '';
+        }else if(data.correct){
+          fixation.prompt = '<div class = centerbox><div style="color:green;font-size:60px"; class = center-text>Correct!</div></div>';
+        }else{
+          fixation.prompt = '<div class = centerbox><div style="color:red;font-size:60px"; class = center-text>Incorrect</div></div>';
+        }
+
+        // dynamically change inter_trial_interval
         if(data.response_ends_trial && data.fill_ITT && data.rt != -1){
   				fixation.trial_duration += Math.floor(data.trial_duration - data.rt);
   			}
@@ -178,7 +191,6 @@
 
 			motionCoherence: config.motionCoherence,
 			colorCoherence: config.colorCoherence
-
     }
 
     // generate sequence
@@ -189,7 +201,7 @@
       var test_procedure;
       if(type == 'M'){
         cue_sequence = {
-          timeline: [cue, fixation, test],
+          timeline: [cue, fixation, test, fixation],
           timeline_variables: motion_stimuli,
           randomize_order: true,
           repetitions: 1,
@@ -199,7 +211,7 @@
           }
         }
         test_procedure = {
-          timeline: [fixation, test],
+          timeline: [test, fixation],
           timeline_variables: motion_stimuli,
           randomize_order: true,
           repetitions: reps - 1,
@@ -210,7 +222,7 @@
         }
       }else if(type == 'C'){
         cue_sequence = {
-          timeline: [cue, fixation, test],
+          timeline: [cue, fixation, test, fixation],
           timeline_variables: color_stimuli,
           randomize_order: true,
           repetitions: 1,
@@ -220,7 +232,7 @@
           }
         }
         test_procedure = {
-          timeline: [fixation, test],
+          timeline: [test, fixation],
           timeline_variables: color_stimuli,
           randomize_order: true,
           repetitions: reps - 1,
