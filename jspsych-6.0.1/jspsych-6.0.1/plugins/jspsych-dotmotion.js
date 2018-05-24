@@ -19,6 +19,7 @@ jsPsych.plugins["dotmotion"] = (function() {
     trial.choices = trial.choices || [];
 		trial.correct_choice = trial.correct_choice;
 		trial.trial_duration = trial.trial_duration || 500;
+    trial.dot_timeout = trial.dot_timeout || 0;
 		trial.post_trial_gap = trial.post_trial_gap || 500;
 		trial.number_of_dots = trial.number_of_dots || 300;
 		trial.number_of_sets = trial.number_of_sets || 1;
@@ -39,16 +40,19 @@ jsPsych.plugins["dotmotion"] = (function() {
 
 		//Coherence can be zero, but logical operators evaluate it to false. So we do it manually
 		if(typeof trial.motionCoherence === 'undefined'){
-			trial.motionCoherence = 0.5;
+			trial.motionCoherence = 0.75;
 		}
 
 		//Color coherence can be zero, but logical operators evaluate it to false. So we do it manually
 		if(typeof trial.colorCoherence === 'undefined'){
-			trial.colorCoherence = 0.5;
+			trial.colorCoherence = 0.75;
 		}
 
 		//Logical operators won't work for boolean parameters like they do for non-boolean parameters above, so we do it manually
-		if (typeof trial.response_ends_trial === 'undefined') {
+    if (typeof trial.responseAfterTimeout === 'undefined'){
+      trial.responseAfterTimeout = false;
+    }
+  	if (typeof trial.response_ends_trial === 'undefined') {
 			trial.response_ends_trial = true;
 		}
 		if(typeof trial.fill_ITT === 'undefined'){
@@ -78,7 +82,7 @@ jsPsych.plugins["dotmotion"] = (function() {
 		var apertureCenterX = trial.aperture_center_x; // The x-coordinate of center of the aperture on the screen, in pixels
 		var apertureCenterY = trial.aperture_center_y; // The y-coordinate of center of the aperture on the screen, in pixels
 
-    var incorrectColor, correctColor;
+    //var incorrectColor, correctColor;
 		if (trial.coherent_color == 'blue'){
 			var correctColor = 'blue';
 			var incorrectColor = 'red';
@@ -207,6 +211,7 @@ jsPsych.plugins["dotmotion"] = (function() {
 
 		//Variable to start the timer when the time comes
 		var timerHasStarted = false;
+    var dotTimerHasStarted = false;
 
 		//Initialize object to store the response data. Default values of -1 are used if the trial times out and the subject has not pressed a valid key
 		var response = {
@@ -216,6 +221,7 @@ jsPsych.plugins["dotmotion"] = (function() {
 
 		//Declare a global timeout ID to be initialized below in animateDotMotion function and to be used in after_response function
 		var timeoutID;
+    var dot_timeoutID;
 
 		//Declare global variable to be defined in startKeyboardListener function and to be used in end_trial function
 		var keyboardListener;
@@ -265,6 +271,7 @@ jsPsych.plugins["dotmotion"] = (function() {
 			// reset timeoutID at the end of trial
 			if (!trial.response_ends_trial) {
 				window.clearTimeout(timeoutID);
+        window.clearTimeout(dot_timeoutID);
 			}
 
 			//Store the number of frames
@@ -296,6 +303,7 @@ jsPsych.plugins["dotmotion"] = (function() {
 				//"choices": trial.choices, //The set of valid keys
 				"correct_choice": trial.correct_choice, //The correct choice
 				"trial_duration": trial.trial_duration, //The trial duration
+        "dot_duration": trial.dot_duration, //The dot duration
 				"response_ends_trial": trial.response_ends_trial, //If the response ends the trial
         "fill_ITT": trial.fill_ITT //Whether to extend ITT or not, response_ends_trial must be true
 				/*
@@ -338,6 +346,7 @@ jsPsych.plugins["dotmotion"] = (function() {
 			//Kill the timeout if the subject has responded within the time given
 			if (trial.response_ends_trial) {
 				window.clearTimeout(timeoutID);
+        window.clearTimeout(dot_timeoutID);
 			}
 
 			//If the response has not been recorded, record it
@@ -830,16 +839,33 @@ jsPsych.plugins["dotmotion"] = (function() {
 			return lowerBound + Math.random() * (upperBound - lowerBound);
 		}
 
+
 		//Function to make the dots move on the canvas
 		function animateDotMotion() {
-			//frameRequestID saves a long integer that is the ID of this frame request. The ID is then used to terminate the request below.
-			var frameRequestID = window.requestAnimationFrame(animate);
-
 			//Start to listen to subject's key responses
-			startKeyboardListener();
+      if (!trial.responseAfterTimeout && trial.dot_timeout == 0){
+			   startKeyboardListener();
+       }
 
-			//Delare a timestamp
-			var previousTimestamp;
+      // Dot timeout option
+      function timeoutDots(){
+        stopDotMotion = true;
+        display_element.innerHTML = '<div style="font-size:60px;">+</div>';
+        if(trial.responseAfterTimeout){
+          startKeyboardListener();
+        }
+      }
+
+      if ( (!dotTimerHasStarted) && (trial.dot_timeout > 0) ){
+        dot_timeoutID = window.setTimeout(timeoutDots,trial.dot_timeout);
+        dotTimerHasStarted = true;
+      }
+
+      //frameRequestID saves a long integer that is the ID of this frame request. The ID is then used to terminate the request below.
+      var frameRequestID = window.requestAnimationFrame(animate);
+
+      //Delare a timestamp
+      var previousTimestamp;
 
 			function animate() {
 				//If stopping condition has been reached, then stop the animation
@@ -855,7 +881,8 @@ jsPsych.plugins["dotmotion"] = (function() {
 						//If the trial duration is set, then set a timer to count down and call the end_trial function when the time is up
 						//(If the subject did not press a valid keyboard response within the trial duration, then this will end the trial)
 						timeoutID = window.setTimeout(end_trial,trial.trial_duration); //This timeoutID is then used to cancel the timeout should the subject press a valid key
-						//The timer has started, so we set the variable to true so it does not start more timers
+
+            //The timer has started, so we set the variable to true so it does not start more timers
 						timerHasStarted = true;
 					}
 

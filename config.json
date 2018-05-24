@@ -10,7 +10,10 @@
     "cue_duration": 700,
     "trial_duration": 3000,
     "inter_trial_interval": 1000,
-    "fixation_cross": true,
+    "fixation_cross": false,
+
+    "responseAfterTimeout": true,
+    "dot_timeout": 1500,
 
     "motionCoherence": 0.7,
     "colorCoherence": 0.7,
