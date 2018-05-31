@@ -17,7 +17,7 @@ jsPsych.plugins["dotmotion"] = (function() {
 		//Note on '||' logical operator: If the first option is 'undefined', it evalutes to 'false' and the second option is returned as the assignment
     trial.task = trial.task || 'undefined';
     trial.choices = trial.choices || [];
-		trial.correct_choice = trial.correct_choice;
+		trial.correct_choice = trial.correct_choice || 'undefined';
 		trial.trial_duration = trial.trial_duration || 500;
     trial.dot_timeout = trial.dot_timeout || 0;
 		trial.post_trial_gap = trial.post_trial_gap || 500;
@@ -226,15 +226,13 @@ jsPsych.plugins["dotmotion"] = (function() {
 		//Declare global variable to be defined in startKeyboardListener function and to be used in end_trial function
 		var keyboardListener;
 
-    if (stage=='task'){
+    if (stage == 'task'){
 		  //This runs the dot motion simulation, updating it according to the frame refresh rate of the screen.
-		  animateDotMotion();
-		}else if (stage =='cue'){
+      animateDotMotion();
+		}else if (stage == 'cue'){
       //This presents the cue
       drawShape(cue_shape, "white");
 		}
-
-
 
 		//--------RDK variables and function calls end--------
 
@@ -295,7 +293,7 @@ jsPsych.plugins["dotmotion"] = (function() {
 			//Place all the data to be saved from this trial in one data object
 			var trial_data = {
         "stage": trial.stage, // cue or task
-        "task": trial.task, //direction or color
+        "task": trial.task, //motion or color
         "cue": trial.cue_shape, // 1, 2, 3, or 4
 				"rt": response.rt, //The response time
 				"key_press": response.key, //The key that the subject pressed
@@ -363,16 +361,13 @@ jsPsych.plugins["dotmotion"] = (function() {
 
 		//Function that determines if the response is correct
 		function correctOrNot(){
-
 			//Check that the correct_choice has been defined
-			if(typeof trial.correct_choice !== 'undefined'){
+			if(typeof trial.correct_choice !== 'undefined' && stage == 'task'){
 				//Check if the correct_choice variable holds an array
 				if(trial.correct_choice.constructor === Array){ //If it is an array
 					trial.correct_choice = trial.correct_choice.map(function(x){return x.toUpperCase();}); //Convert all the values to upper case
 					return trial.correct_choice.includes(String.fromCharCode(response.key)); //If the response is included in the correct_choice array, return true. Else, return false.
-				}
-				//Else compare the char with the response key
-				else{
+				}else{ //Else compare the char with the response key
 					//Return true if the user's response matches the correct answer. Return false otherwise.
 					return response.key == trial.correct_choice.toUpperCase().charCodeAt(0);
 				}
@@ -850,7 +845,7 @@ jsPsych.plugins["dotmotion"] = (function() {
       // Dot timeout option
       function timeoutDots(){
         stopDotMotion = true;
-        display_element.innerHTML = '<div style="font-size:60px;">+</div>';
+        display_element.innerHTML = '<div style="font-size:60px;">?</div>';
         if(trial.responseAfterTimeout){
           startKeyboardListener();
         }

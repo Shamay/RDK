@@ -2,22 +2,17 @@
   {
     "number_of_dots": 200,
 
-    "coherentDirection": "verticalAxis",
+    "coherentAxis": "verticalAxis",
 
     "response_ends_trial": true,
-    "fill_ITT": true,
+    "fill_ITT": false,
 
-    "cue_duration": 700,
-    "trial_duration": 3000,
-    "inter_trial_interval": 1000,
+    "cue_duration": 500,
+    "trial_duration": 2000,
+    "inter_trial_interval": 500,
     "fixation_cross": false,
 
-    "responseAfterTimeout": true,
-    "dot_timeout": 1500,
-
-    "motionCoherence": 0.7,
-    "colorCoherence": 0.7,
-
-    "sequence": ["C2","M3"]
+    "responseAfterTimeout": false,
+    "dot_timeout": 0
   }
 ]
