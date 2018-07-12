@@ -54,6 +54,7 @@
   font-family: 'Open Sans', 'Arial', sans-serif;
   font-size: 18px;
   line-height: 1.6em;
+  color: white;
 }
 
 /* Form elements like input fields and buttons */
@@ -130,4 +131,17 @@ input[type="text"] {
 /* Control appearance of jsPsych.data.displayData() */
 #jspsych-data-display {
   text-align: left;
+}
+
+/*ADDED*/
+.column {
+    float: left;
+    width: 49%;
+}
+
+/* Clear floats after the columns */
+.row:after {
+    content: "";
+    display: table;
+    clear: both;
 }

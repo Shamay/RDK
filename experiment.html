@@ -37,7 +37,7 @@
       <script src="jspsych-6.0.1/jspsych-6.0.1/plugins/jspsych-fullscreen.js"></script>
       <link href="jspsych-6.0.1/css/jspsych.css" rel="stylesheet" type="text/css"></link>
   </head>
-  <body></body>
+  <body style="background-color:grey;"></body>
   <script>
 
     //The main timeline to be fed into jsPsych.init
@@ -64,45 +64,19 @@
         }
      });
 
-    function processData(allText) {
-        var allTextLines = allText.split(/\r\n|\n/);
-        headers = allTextLines[0].split(',');
-        lines = [];
-
-        for (var i=1; i<allTextLines.length; i++) {
-            var data = allTextLines[i].split(',');
-            if (data.length == headers.length) {
-                var tarr = [];
-                for (var j=0; j<headers.length; j++) {
-                    tarr.push(data[j]);
-                }
-                lines.push(tarr);
-            }
-        }
-    }
-
     // fullscreen mode
+    /*
     timeline.push({
       type: 'fullscreen',
       fullscreen_mode: true,
       message: '<p>The experiment will switch to full screen mode when you press the button below</p>',
       button_label: 'Start Experiment'
     });
+    */
 
-    /* define instructions block */
-    var instructions = {
-      type: 'instructions',
-      pages: [
-          'Welcome to the experiment. Click next to begin.',
-          //'This is the second page of instructions.',
-          //'This is the final page.'
-      ],
-      show_clickable_nav: true,
-      post_trial_gap: 1000
-    };
-    timeline.push(instructions);
 
     //---------Create trials---------
+
 
     var cue = {
       type: "dotmotion",
@@ -154,6 +128,7 @@
       RDK_type: 3, //The type of RDK used
       choices: ['a', 'l'], //Choices available to be keyed in by participant
 
+      phase: jsPsych.timelineVariable('phase'),
       task: jsPsych.timelineVariable('task'),
       correct_choice: jsPsych.timelineVariable('correct_response'),
       coherent_direction: jsPsych.timelineVariable('coherent_direction'),
@@ -169,7 +144,413 @@
 			fill_ITT: config.fill_ITT, // Whether to standardize trial length or not, condition on response_ends_trial being true
 
       responseAfterTimeout: config.responseAfterTimeout,
-      dot_timeout: config.dot_timeout
+      dot_timeout: config.dot_timeout,
+
+      on_start: function(stimulus){
+        var data = jsPsych.data.get().last(2).values()[0];
+
+        if(stimulus.phase == '1.1'){
+          if(typeof data.correct === "undefined"){
+            stimulus.motionCoherence = 0.8;
+            console.log(currentMotionCoherence);
+          }else if(data.correct){
+            if(currentMotionCoherence > 0.55){
+              currentMotionCoherence = currentMotionCoherence - learningRate;
+            }
+            stimulus.motionCoherence = currentMotionCoherence;
+            console.log(currentMotionCoherence);
+          }else{
+            if(currentMotionCoherence < 0.85){
+              currentMotionCoherence = currentMotionCoherence + 2*learningRate;
+            }
+            stimulus.motionCoherence = currentMotionCoherence;
+            console.log(currentMotionCoherence);
+          }
+        }else if(stimulus.phase == '1.2'){
+          if(typeof data.correct === "undefined"){
+            stimulus.colorCoherence = 0.8;
+            console.log(currentColorCoherence);
+          }else if(data.correct){
+            if(currentColorCoherence > 0.55){
+              currentColorCoherence = currentColorCoherence - learningRate;
+            }
+            stimulus.colorCoherence = currentColorCoherence;
+            console.log(currentColorCoherence);
+          }else{
+            if(currentColorCoherence < 0.85){
+              currentColorCoherence = currentColorCoherence + 2*learningRate;
+            }
+            stimulus.colorCoherence = currentColorCoherence;
+            console.log(currentColorCoherence);
+          }
+        }else if(stimulus.phase == '3'){
+          stimulus.stage = 'task_exp';
+        }
+      }
+    }
+
+    //convert vertical/horizontal to degree notation
+    var degrees;
+    if (config.coherentAxis ==  'verticalAxis'){
+      degrees = 270;
+    }else if (config.coherentAxis ==  "horizontalAxis") {
+      degrees = 180;
+    }
+
+    // --------------------
+    // FIRST PHASE
+    // --------------------
+
+    /* define introduction block */
+    var introduction = {
+      type: 'instructions',
+      pages: [
+          'Welcome to the experiment. Click next to begin.',
+          "<p>In this experiment, a swarm of red and blue moving dots appear on the screen.</p> Click next for a visual."
+      ],
+      show_clickable_nav: true,
+      post_trial_gap: 1000
+    };
+    timeline.push(introduction);
+    timeline.push(stimulus);
+
+    /* define instructions block */
+    var instructions_motion = {
+      type: 'instructions',
+      pages: ["<p>Now that you've seen the stimulus,<br/> " +
+      "there are two sets of tasks:</p> <strong>Motion</strong> tasks and <strong>Color</strong> tasks",
+
+          "<p>In the <strong>motion</strong> task, you must discern which direction the majority of the dots are going.</p>" +
+          "<p>If the majority of dots are going <strong>downwards</strong>, " +
+          "press the letter A as fast as you can.</p>" +
+          "<p>If the majority of dots are going <strong>upwards</strong>, press the letter L " +
+          "as fast as you can.</p>" +
+          "<div style='width: 700px;'>"+
+          "<div style='float: left;'><img src='img/down.png'></img>" +
+          "<p class='small'><strong>Press the A key</strong></p></div>" +
+          "<div class='float: right;'><img src='img/up.png'></img>" +
+          "<p class='small'><strong>Press the L key</strong></p></div>" +
+          "</div>",
+
+          "<p>In the first stage of the experiment, we will continually increase the difficulty " +
+          "of the tasks until we find an appropriate level for you.</p><p>We will begin with just the " +
+          "motion task. Remember to press A when the majority of the dots are moving down and L for up.</p>" +
+          "Please ready your fingers on the A and L keys and press next whenever you're ready!"
+      ],
+      show_clickable_nav: true,
+      post_trial_gap: 1000
+    };
+
+    /* define instructions block */
+    var instructions_color = {
+      type: 'instructions',
+      pages: ["<p>In the <strong>color</strong> task, you must discern the color of the majority of the dots.</p>" +
+          "<p>If the majority of dots are <strong>red</strong>, " +
+          "press the letter A as fast as you can.</p>" +
+          "<p>If the majority of dots are <strong>blue</strong>, press the letter L " +
+          "as fast as you can.</p>" +
+          "<div style='width: 700px;'>"+
+          "<div style='float: left;'><img src='img/red.png'></img>" +
+          "<p class='small'><strong>Press the A key</strong></p></div>" +
+          "<div class='float: right;'><img src='img/blue.png'></img>" +
+          "<p class='small'><strong>Press the L key</strong></p></div>" +
+          "</div>",
+
+          "<p>As in the previous stage of the experiment, we will continually increase the difficulty " +
+          "of the tasks until we find an appropriate level for you.</p><p>We will begin with just the " +
+          "motion task. Remember to press A when the majority of the dots are mostly red and L for mostly blue.</p>" +
+          "Please ready your fingers on the A and L keys and press next whenever you're ready!"
+      ],
+      show_clickable_nav: true,
+      post_trial_gap: 1000
+    };
+
+    //staircasing phase
+    var numTrials = 10;
+    var currentMotionCoherence = 0.8;
+    var currentColorCoherence = 0.8;
+    var learningRate = 0.025;
+    var percentageCorrect = 0;
+
+    var motion_stimulus = [
+      {// Motion trial 1
+        phase: '1.1',
+        task: 'motion',
+        correct_response: 'a', //The correct answer for Condition 2
+				coherent_direction: degrees, //The coherent direction for Condition 1 (dots move down/left)
+				coherent_color: 'blue'
+			},
+			{// Motion trial 2
+        phase: '1.1',
+				task: 'motion',
+        correct_response: 'l', //The correct answer for Condition 2
+				coherent_direction: degrees - 180, //The coherent direction for Condition 2 (dots move up/right)
+				coherent_color: 'red'
+			},{// Motion trial 3
+        phase: '1.1',
+        task: 'motion',
+        correct_response: 'a', //The correct answer for Condition 2
+				coherent_direction: degrees, //The coherent direction for Condition 1 (dots move down/left)
+				coherent_color: 'red'
+			},
+			{// Motion trial 4
+        phase: '1.1',
+				task: 'motion',
+        correct_response: 'l', //The correct answer for Condition 2
+				coherent_direction: degrees - 180, //The coherent direction for Condition 2 (dots move up/right)
+				coherent_color: 'blue'
+			}
+    ]
+
+    var color_stimulus = [
+      {// Color trial 1
+        phase: '1.2',
+        task: 'color',
+        correct_response: 'a',
+        coherent_direction: degrees,
+				coherent_color: 'red'
+			},
+			{// Color trial 2
+        phase: '1.2',
+				task: 'color',
+        correct_response: 'l',
+        coherent_direction: degrees - 180,
+				coherent_color: 'blue'
+			},{// Color trial 3
+        phase: '1.2',
+        task: 'color',
+        correct_response: 'a',
+        coherent_direction: degrees,
+				coherent_color: 'red'
+			},
+			{// Color trial 4
+        phase: '1.2',
+				task: 'color',
+        correct_response: 'l',
+        coherent_direction: degrees - 180,
+				coherent_color: 'blue'
+			}
+    ]
+
+    timeline.push(instructions_motion);
+
+    for(i = 0; i < numTrials; i++){
+      var stim_sequence = {
+        timeline: [stimulus, fixation],
+        timeline_variables: motion_stimulus,
+        randomize_order: true,
+        repetitions: 1,
+        sample: {
+            type: "without-replacement",
+            size: 1
+          }
+        }
+      timeline.push(stim_sequence);
+    }
+
+    timeline.push(instructions_color);
+
+    for(i = 0; i < numTrials; i++){
+      var stim_sequence = {
+        timeline: [stimulus, fixation],
+        timeline_variables: color_stimulus,
+        randomize_order: true,
+        repetitions: 1,
+        sample: {
+            type: "without-replacement",
+            size: 1,
+                }
+        }
+      timeline.push(stim_sequence);
+    }
+
+    // --------------------
+    // SECOND PHASE
+    // --------------------
+
+    var instructions_cue = {
+      type: 'instructions',
+      pages: [
+          '<p>Welcome to the SECOND PHASE. We introduce a set of cues that appear before each of the two tasks (motion and color)</p>' +
+          'Click next for a visual example.'
+      ],
+      show_clickable_nav: true,
+      post_trial_gap: 1000
+    };
+    timeline.push(instructions_cue);
+    timeline.push(cue, stimulus);
+
+    /* define instructions block */
+    var instructions_cue2 = {
+      type: 'instructions',
+      pages: [
+        "<p> A series of cues will appear on the screen.You are asked to match them to the appropriate task (motion or color).</p>",
+        "<p>To cue the <strong>motion</strong> task, you will be shown of the two cues below.</p>" +
+          "<div style='width: 700px;'>"+
+          "<div style='float: left;'><img src='img/diamond.png'></img>" +
+          "<p class='small'><strong>Press the Q key</strong></p></div>" +
+          "<div class='float: right;'><img src='img/square.png'></img>" +
+          "<p class='small'><strong>Press the Q key</strong></p></div>" +
+          "</div>",
+        "<p>To cue the <strong>color</strong> task, you will be shown of the two cues below.</p>" +
+          "<div style='width: 700px;'>"+
+          "<div style='float: left;'><img src='img/circle.png'></img>" +
+          "<p class='small'><strong>Press the P key</strong></p></div>" +
+          "<div class='float: right;'><img src='img/triangle.png'></img>" +
+          "<p class='small'><strong>Press the P key</strong></p></div>" +
+          "</div>",
+        "<p>In this stage of the experiment, we will display a series of cues " +
+          "to give you practice associating cues and their tasks.</p><p>We will begin with just the " +
+          "motion task. Remember to press Q for motion task cues (diamond, square) and P for color task cues (triangle, circle).</p>" +
+          "Please ready your fingers on the Q and P keys and press next whenever you're ready!"
+      ],
+      show_clickable_nav: true,
+      post_trial_gap: 1000
+    };
+    timeline.push(instructions_cue2);
+
+    var cue_phase = {
+      type: "html-keyboard-response",
+      stimulus: jsPsych.timelineVariable('stimulus'),
+      choices: ['p', 'q'],
+      data: jsPsych.timelineVariable('data'),
+      trial_duration: config.trial_duration,
+      on_finish: function(data){
+        data.correct = data.key_press == jsPsych.pluginAPI.convertKeyCharacterToKeyCode(data.correct_response);
+      }
+    }
+
+    var cue_response = {
+      type: "html-keyboard-response",
+      stimulus: jsPsych.timelineVariable('stimulus'),
+      choices: jsPsych.NO_KEYS,
+      trial_duration: config.cue_duration, //Duration of each cue in ms
+      on_start: function(cue_response){
+        // get data from previous trial
+        var data = jsPsych.data.get().last(1).values()[0];
+        if(data.key_press === null){
+          cue_response.trial_duration = 0;
+        }else{
+          console.log(data.cue, data.key_press, data.correct);
+          cue_response.stimulus = generateCue(data.cue, data.key_press, data.correct);
+        }
+      }
+    }
+
+    var cue_fixation = {
+      type: 'html-keyboard-response',
+      stimulus: '<div style="float: center; font-size:60px; color:black;">+</div>',
+      choices: jsPsych.NO_KEYS,
+      trial_duration: config.inter_trial_interval
+    }
+
+    function generateCue(cue, answer = '', correct = true){
+      if(answer == 81){
+          if(correct){
+            return "<div class='row'>"+
+                      "<div class='column' style='border: solid green'>" +
+                      "<p class='small'><strong>Motion Trial</strong></p></div>" +
+                      "<div class='column'>" +
+                      "<p class='small'><strong>Color Trial</strong></p></div>" +
+                   "</div>" +
+                   "<div style='width: 700px;'>" +
+                      "<div style='float: center;'><img src='img/" + cue + ".png'></img></div>" +
+                   "</div>"
+          }else{
+            return "<div class='row'>"+
+                      "<div class='column' style='border: solid red'>" +
+                      "<p class='small'><strong>Motion Trial</strong></p></div>" +
+                      "<div class='column'>" +
+                      "<p class='small'><strong>Color Trial</strong></p></div>" +
+                   "</div>" +
+                   "<div style='width: 700px;'>" +
+                      "<div style='float: center;'><img src='img/" + cue + ".png'></img></div>" +
+                   "</div>"
+          }
+      }else if(answer == 80){
+        if(correct){
+          return "<div class='row'>"+
+                    "<div class='column'>" +
+                    "<p class='small'><strong>Motion Trial</strong></p></div>" +
+                    "<div class='column' style='border: solid green'>" +
+                    "<p class='small'><strong>Color Trial</strong></p></div>" +
+                 "</div>" +
+                 "<div style='width: 700px;'>" +
+                    "<div style='float: center;'><img src='img/" + cue + ".png'></img></div>" +
+                 "</div>"
+        }else{
+          return "<div class='row'>"+
+                    "<div class='column'>" +
+                    "<p class='small'><strong>Motion Trial</strong></p></div>" +
+                    "<div class='column' style='border: solid red'>" +
+                    "<p class='small'><strong>Color Trial</strong></p></div>" +
+                 "</div>" +
+                 "<div style='width: 700px;'>" +
+                    "<div style='float: center;'><img src='img/" + cue + ".png'></img></div>" +
+                 "</div>"
+        }
+      }else{
+        return "<div class='row'>"+
+                  "<div class='column'>" +
+                  "<p class='small'><strong>Motion Trial</strong></p></div>" +
+                  "<div class='column'>" +
+                  "<p class='small'><strong>Color Trial</strong></p></div>" +
+               "</div>" +
+               "<div style='width: 700px;'>" +
+                  "<div style='float: center;'><img src='img/" + cue + ".png'></img></div>" +
+               "</div>"
+      }
+    }
+
+    var cue_stimuli = [
+      { stimulus:  generateCue('square'), data: {task: 'motion', cue: 'square', correct_response: 'p'}},
+      { stimulus:  generateCue('diamond'), data: {task: 'motion', cue: 'diamond', correct_response: 'p'}},
+      { stimulus:  generateCue('circle'), data: {task: 'color', cue: 'circle', correct_response: 'q'}},
+      { stimulus:  generateCue('triangle'), data: {task: 'color', cue: 'triangle', correct_response: 'q'}}
+    ];
+
+    for(i = 0; i < numTrials; i++){
+      var cue_sequence = {
+        timeline: [cue_phase, cue_response,cue_fixation],
+        timeline_variables: cue_stimuli,
+        randomize_order: true,
+        repetitions: 1,
+        sample: {
+            type: "without-replacement",
+            size: 1
+          }
+        }
+      timeline.push(cue_sequence);
+    }
+
+    // --------------------
+    // THIRD PHASE
+    // --------------------
+    var instructions_exp = {
+      type: 'instructions',
+      pages: [
+          'Welcome to the THIRD PHASE. Click next to begin the experiment'
+      ],
+      show_clickable_nav: true,
+      post_trial_gap: 1000
+    };
+    timeline.push(instructions_exp);
+
+    function processData(allText) {
+        var allTextLines = allText.split(/\r\n|\n/);
+        headers = allTextLines[0].split(',');
+        lines = [];
+
+        for (var i=1; i<allTextLines.length; i++) {
+            var data = allTextLines[i].split(',');
+            if (data.length == headers.length) {
+                var tarr = [];
+                for (var j=0; j<headers.length; j++) {
+                    tarr.push(data[j]);
+                }
+                lines.push(tarr);
+            }
+        }
     }
 
     //generate timeline variables
@@ -194,14 +575,6 @@
         correct_response = 'a';
       }else if(vars[4] == 'color' && vars[8] == 'blue'){
         correct_response = 'l';
-      }
-
-      //convert vertical/horizontal to degree notation
-      var degrees;
-      if (config.coherentAxis ==  'verticalAxis'){
-        degrees = 270;
-      }else if (config.coherentAxis ==  "horizontalAxis") {
-        degrees = 180;
       }
 
       var coherent_direction;
@@ -229,11 +602,11 @@
           coherent_direction: coherent_direction,
           motionCoherence: vars[7],
           coherent_color: coherent_color,
-          colorCoherence: vars[9]
+          colorCoherence: vars[9],
+          phase: '3'
         }];
     }
 
-    // generate sequence
     for (line in lines){
       var trial_vars = generateTrial(lines[line]); //generate timeline variables
 
@@ -264,7 +637,7 @@
         //jsPsych.data.getInteractionData(); LOOK INTO THIS
 
         // select task trials
-        var task_trials = jsPsych.data.get().filter({stage: 'task'});
+        var task_trials = jsPsych.data.get().filter({stage: 'task_exp'});
         var rt_data = task_trials.select('rt').values;
         var acc_data = task_trials.select('correct').values;
 

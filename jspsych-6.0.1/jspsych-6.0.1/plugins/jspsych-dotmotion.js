@@ -23,7 +23,7 @@ jsPsych.plugins["dotmotion"] = (function() {
 		trial.post_trial_gap = trial.post_trial_gap || 500;
 		trial.number_of_dots = trial.number_of_dots || 300;
 		trial.number_of_sets = trial.number_of_sets || 1;
-		trial.coherent_direction = trial.coherent_direction || 0;
+		trial.coherent_direction = trial.coherent_direction || 90;
 		trial.coherent_color = trial.coherent_color || 'blue'; //The correct color choice.
 		trial.dot_radius = trial.dot_radius || 2;
 		trial.dot_life = trial.dot_life || -1;
@@ -31,12 +31,13 @@ jsPsych.plugins["dotmotion"] = (function() {
 		trial.aperture_width = trial.aperture_width || 600;
 		trial.aperture_height = trial.aperture_height || 400;
 		trial.dot_color = trial.dot_color || "white";
-		trial.background_color = trial.background_color || "gray";
+		trial.background_color = trial.background_color || "grey";
 		trial.RDK_type = trial.RDK_type || 7;
 		trial.aperture_type = trial.aperture_type || 2;
 		trial.reinsert_type = trial.reinsert_type || 2;
 		trial.aperture_center_x = trial.aperture_center_x || window.innerWidth/2;
 		trial.aperture_center_y = trial.aperture_center_y || window.innerHeight/2;
+    trial.cue_shape = trial.cue_shape || 1;
 
 		//Coherence can be zero, but logical operators evaluate it to false. So we do it manually
 		if(typeof trial.motionCoherence === 'undefined'){
@@ -192,10 +193,10 @@ jsPsych.plugins["dotmotion"] = (function() {
 		var coherentJumpSizeY = calculateCoherentJumpSizeY(coherentDirection);
 
 		//Calculate the number of coherent and incoherent dots
-		var nCoherentDots = nDots * motionCoherence;
+		var nCoherentDots = Math.round(nDots * motionCoherence);
 		var nIncoherentDots = nDots - nCoherentDots;
-		var nCorrectColor = nDots * colorCoherence
-		var nIncorrectColor = nDots - nCorrectColor
+		var nCorrectColor = Math.round(nDots * colorCoherence);
+		var nIncorrectColor = nDots - nCorrectColor;
 
 		//Make the array of arrays containing dot objects
 		var dotArray2d = makeDotArray2d();
@@ -229,7 +230,10 @@ jsPsych.plugins["dotmotion"] = (function() {
     if (stage == 'task'){
 		  //This runs the dot motion simulation, updating it according to the frame refresh rate of the screen.
       animateDotMotion();
-		}else if (stage == 'cue'){
+		}else if (stage == 'task_exp'){
+  		  //This runs the dot motion simulation, updating it according to the frame refresh rate of the screen.
+        animateDotMotion();
+  	}else if (stage == 'cue'){
       //This presents the cue
       drawShape(cue_shape, "white");
 		}
@@ -362,7 +366,7 @@ jsPsych.plugins["dotmotion"] = (function() {
 		//Function that determines if the response is correct
 		function correctOrNot(){
 			//Check that the correct_choice has been defined
-			if(typeof trial.correct_choice !== 'undefined' && stage == 'task'){
+			if(typeof trial.correct_choice !== 'undefined' && (stage == 'task' || stage == 'task_exp')){
 				//Check if the correct_choice variable holds an array
 				if(trial.correct_choice.constructor === Array){ //If it is an array
 					trial.correct_choice = trial.correct_choice.map(function(x){return x.toUpperCase();}); //Convert all the values to upper case
