@@ -91,14 +91,7 @@
 
     var fixation = {
       type: 'html-keyboard-response',
-      stimulus: function(){
-        if(config.fixation_cross){ // Whether or not to include fixation cross)
-          return '<div style="font-size:60px;">+</div>';
-        }else{
-          return '';
-        }
-      }(),
-
+      stimulus: '',
       choices: jsPsych.NO_KEYS,
       trial_duration: config.inter_trial_interval,
 
@@ -107,8 +100,8 @@
         var data = jsPsych.data.get().last(1).values()[0];
 
         // prompt whether the previous trial was correct or not
-        if(typeof data.correct === "undefined"){
-          fixation.prompt = '';
+        if(typeof data.correct === "undefined" || config.fixation_cross){
+          fixation.prompt = '<div style="font-size:60px;">+</div>';
         }else if(data.correct){
           fixation.prompt = '<div class = centerbox><div style="color:green;font-size:60px"; class = center-text>Correct!</div></div>';
         }else{
@@ -154,14 +147,18 @@
             stimulus.motionCoherence = 0.8;
             console.log(currentMotionCoherence);
           }else if(data.correct){
-            if(currentMotionCoherence > 0.55){
+            if(currentMotionCoherence > minCoherence){
               currentMotionCoherence = currentMotionCoherence - learningRate;
             }
             stimulus.motionCoherence = currentMotionCoherence;
             console.log(currentMotionCoherence);
           }else{
-            if(currentMotionCoherence < 0.85){
-              currentMotionCoherence = currentMotionCoherence + 2*learningRate;
+            if(currentMotionCoherence < maxCoherence){
+              if(currentMotionCoherence + 2*learningRate >= maxCoherence){
+                currentMotionCoherence = maxCoherence;
+              }else{
+                currentMotionCoherence = currentMotionCoherence + 2*learningRate;
+              }
             }
             stimulus.motionCoherence = currentMotionCoherence;
             console.log(currentMotionCoherence);
@@ -171,20 +168,25 @@
             stimulus.colorCoherence = 0.8;
             console.log(currentColorCoherence);
           }else if(data.correct){
-            if(currentColorCoherence > 0.55){
+            if(currentColorCoherence > minCoherence){
               currentColorCoherence = currentColorCoherence - learningRate;
             }
             stimulus.colorCoherence = currentColorCoherence;
             console.log(currentColorCoherence);
           }else{
-            if(currentColorCoherence < 0.85){
-              currentColorCoherence = currentColorCoherence + 2*learningRate;
+            if(currentColorCoherence < maxCoherence){
+              if(currentColorCoherence + 2*learningRate >= maxCoherence){
+                currentColorCoherence = maxCoherence;
+              }else{
+                currentColorCoherence = currentMotionCoherence + 2*learningRate;
+              }
             }
             stimulus.colorCoherence = currentColorCoherence;
             console.log(currentColorCoherence);
           }
         }else if(stimulus.phase == '3'){
           stimulus.stage = 'task_exp';
+          config.fixation_cross = true;
         }
       }
     }
@@ -270,6 +272,8 @@
     var currentMotionCoherence = 0.8;
     var currentColorCoherence = 0.8;
     var learningRate = 0.025;
+    var minCoherence = 0.55;
+    var maxCoherence = 0.90;
     var percentageCorrect = 0;
 
     var motion_stimulus = [
