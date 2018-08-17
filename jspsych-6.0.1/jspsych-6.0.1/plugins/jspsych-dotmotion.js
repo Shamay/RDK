@@ -37,7 +37,7 @@ jsPsych.plugins["dotmotion"] = (function() {
 		trial.reinsert_type = trial.reinsert_type || 2;
 		trial.aperture_center_x = trial.aperture_center_x || window.innerWidth/2;
 		trial.aperture_center_y = trial.aperture_center_y || window.innerHeight/2;
-    trial.cue_shape = trial.cue_shape || 1;
+    trial.cue_shape = trial.cue_shape || -1;
 
 		//Coherence can be zero, but logical operators evaluate it to false. So we do it manually
 		if(typeof trial.motionCoherence === 'undefined'){
@@ -298,11 +298,11 @@ jsPsych.plugins["dotmotion"] = (function() {
 			var trial_data = {
         "stage": trial.stage, // cue or task
         "task": trial.task, //motion or color
-        "cue": trial.cue_shape, // 1, 2, 3, or 4
+        "cue_shape": trial.cue_shape, // circle, triangle, square, or diamond
 				"rt": response.rt, //The response time
 				"key_press": response.key, //The key that the subject pressed
 				"correct": correctOrNot(), //If the subject response was correct
-				//"choices": trial.choices, //The set of valid keys
+				"choices": trial.choices, //The set of valid keys
 				"correct_choice": trial.correct_choice, //The correct choice
 				"trial_duration": trial.trial_duration, //The trial duration
         "dot_duration": trial.dot_duration, //The dot duration
@@ -906,18 +906,18 @@ jsPsych.plugins["dotmotion"] = (function() {
 		      ctx.beginPath();
 		      var centerX = canvas.width / 2;
 		      var centerY = canvas.height / 2;
-		      if (shape == 1){
+		      if (shape == "circle"){
       			   //draw a circle
       			      ctx.arc(centerX,centerY,50,0,2*Math.PI);
-          }else if (shape == 2){
-			         //draw a rectangle
+          }else if (shape == "square"){
+			         //draw a square
     			        ctx.rect(centerX-50,centerY-35,100,70);
-    		  }else if (shape == 3){
+    		  }else if (shape == "triangle"){
 			         //draw a triangle
             			ctx.moveTo(centerX, centerY-45);
             			ctx.lineTo(centerX+60, centerY+30);
             			ctx.lineTo(centerX-60, centerY+30);
-		      }else if (shape == 4){
+		      }else if (shape == "diamond"){
 			         //draw a diamond
 			            ctx.moveTo(centerX+45, centerY);
 			            ctx.lineTo(centerX, centerY-55);
