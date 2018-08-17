@@ -10,7 +10,9 @@
     "cue_duration": 500,
     "trial_duration": 2000,
     "inter_trial_interval": 500,
-    "fixation_cross": false,
+
+    "fixation_cross": true,
+    "task_feedback": true,
 
     "responseAfterTimeout": false,
     "dot_timeout": 0

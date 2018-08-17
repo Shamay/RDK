@@ -89,6 +89,17 @@
       trial_duration: config.cue_duration, //Duration of each cue in ms
     }
 
+    /*var cue = {
+      type: 'html-keyboard-response',
+      stimulus: '',
+      choices: jsPsych.NO_KEYS,
+
+      task: jsPsych.timelineVariable('task'),
+      cue_shape: jsPsych.timelineVariable('cue_shape'),
+
+      trial_duration: config.cue_duration, //Duration of each cue in ms
+    }*/
+
     var fixation = {
       type: 'html-keyboard-response',
       stimulus: '',
@@ -100,12 +111,22 @@
         var data = jsPsych.data.get().last(1).values()[0];
 
         // prompt whether the previous trial was correct or not
-        if(typeof data.correct === "undefined" || config.fixation_cross){
-          fixation.prompt = '<div style="font-size:60px;">+</div>';
-        }else if(data.correct){
-          fixation.prompt = '<div class = centerbox><div style="color:green;font-size:60px"; class = center-text>Correct!</div></div>';
+        if(config.task_feedback){
+          if(typeof data.correct === "undefined"){
+            fixation.prompt = '<div style="font-size:60px;">NONE</div>';
+          }else if(data.correct){
+            fixation.prompt = '<div class = centerbox><div style="color:green;font-size:60px"; class = center-text>Correct!</div></div>';
+          }else if(!data.correct){
+            fixation.prompt = '<div class = centerbox><div style="color:red;font-size:60px"; class = center-text>Incorrect</div></div>';
+          }else if(config.fixation_cross){
+            fixation.prompt = '<div style="font-size:60px; color:black;">+</div>';
+          }
         }else{
-          fixation.prompt = '<div class = centerbox><div style="color:red;font-size:60px"; class = center-text>Incorrect</div></div>';
+          if(config.fixation_cross){
+            fixation.prompt = '<div style="font-size:60px; color:black;">+</div>';
+          }else{
+            fixation.prompt = '';
+          }
         }
 
         // dynamically change inter_trial_interval
@@ -186,7 +207,7 @@
           }
         }else if(stimulus.phase == '3'){
           stimulus.stage = 'task_exp';
-          config.fixation_cross = true;
+          config.task_feedback = false; //turn off task feedback in third stage
         }
       }
     }
@@ -213,8 +234,8 @@
       show_clickable_nav: true,
       post_trial_gap: 1000
     };
-    timeline.push(introduction);
-    timeline.push(stimulus);
+    //timeline.push(introduction);
+    //timeline.push(stimulus);
 
     /* define instructions block */
     var instructions_motion = {
@@ -324,19 +345,19 @@
         phase: '1.2',
         task: 'color',
         correct_response: 'a',
-        coherent_direction: degrees,
+        coherent_direction: degrees - 180,
 				coherent_color: 'red'
 			},
 			{// Color trial 4
         phase: '1.2',
 				task: 'color',
         correct_response: 'l',
-        coherent_direction: degrees - 180,
+        coherent_direction: degrees,
 				coherent_color: 'blue'
 			}
     ]
 
-    timeline.push(instructions_motion);
+    //timeline.push(instructions_motion);
 
     for(i = 0; i < numTrials; i++){
       var stim_sequence = {
@@ -349,10 +370,10 @@
             size: 1
           }
         }
-      timeline.push(stim_sequence);
+      //timeline.push(stim_sequence);
     }
 
-    timeline.push(instructions_color);
+    //timeline.push(instructions_color);
 
     for(i = 0; i < numTrials; i++){
       var stim_sequence = {
@@ -365,12 +386,20 @@
             size: 1,
                 }
         }
-      timeline.push(stim_sequence);
+      //timeline.push(stim_sequence);
     }
 
     // --------------------
     // SECOND PHASE
     // --------------------
+    var shapes = ["circle","diamond","triangle","square"];
+    var shuffleShapes = jsPsych.randomization.repeat(shapes, 1);
+    var mapping = {
+      1: shuffleShapes[0],
+      2: shuffleShapes[1],
+      3: shuffleShapes[2],
+      4: shuffleShapes[3]
+    };
 
     var instructions_cue = {
       type: 'instructions',
@@ -381,8 +410,8 @@
       show_clickable_nav: true,
       post_trial_gap: 1000
     };
-    timeline.push(instructions_cue);
-    timeline.push(cue, stimulus);
+    //timeline.push(instructions_cue);
+    //timeline.push(cue, stimulus);
 
     /* define instructions block */
     var instructions_cue2 = {
@@ -391,16 +420,16 @@
         "<p> A series of cues will appear on the screen.You are asked to match them to the appropriate task (motion or color).</p>",
         "<p>To cue the <strong>motion</strong> task, you will be shown of the two cues below.</p>" +
           "<div style='width: 700px;'>"+
-          "<div style='float: left;'><img src='img/diamond.png'></img>" +
+          "<div style='float: left;'><img src='img/" + mapping[1] + ".png'></img>" +
           "<p class='small'><strong>Press the Q key</strong></p></div>" +
-          "<div class='float: right;'><img src='img/square.png'></img>" +
+          "<div class='float: right;'><img src='img/" + mapping[2] + ".png'></img>" +
           "<p class='small'><strong>Press the Q key</strong></p></div>" +
           "</div>",
         "<p>To cue the <strong>color</strong> task, you will be shown of the two cues below.</p>" +
           "<div style='width: 700px;'>"+
-          "<div style='float: left;'><img src='img/circle.png'></img>" +
+          "<div style='float: left;'><img src='img/" + mapping[3] + ".png'></img>" +
           "<p class='small'><strong>Press the P key</strong></p></div>" +
-          "<div class='float: right;'><img src='img/triangle.png'></img>" +
+          "<div class='float: right;'><img src='img/" + mapping[4] + ".png'></img>" +
           "<p class='small'><strong>Press the P key</strong></p></div>" +
           "</div>",
         "<p>In this stage of the experiment, we will display a series of cues " +
@@ -507,10 +536,10 @@
     }
 
     var cue_stimuli = [
-      { stimulus:  generateCue('square'), data: {task: 'motion', cue: 'square', correct_response: 'p'}},
-      { stimulus:  generateCue('diamond'), data: {task: 'motion', cue: 'diamond', correct_response: 'p'}},
-      { stimulus:  generateCue('circle'), data: {task: 'color', cue: 'circle', correct_response: 'q'}},
-      { stimulus:  generateCue('triangle'), data: {task: 'color', cue: 'triangle', correct_response: 'q'}}
+      { stimulus: generateCue(mapping[1]), data: {task: 'motion', cue: mapping[1], correct_response: 'q'}},
+      { stimulus: generateCue(mapping[2]), data: {task: 'motion', cue: mapping[2], correct_response: 'q'}},
+      { stimulus: generateCue(mapping[3]), data: {task: 'color', cue: mapping[3], correct_response: 'p'}},
+      { stimulus: generateCue(mapping[4]), data: {task: 'color', cue: mapping[4], correct_response: 'p'}}
     ];
 
     for(i = 0; i < numTrials; i++){
@@ -559,25 +588,32 @@
 
     //generate timeline variables
     function generateTrial(vars){
+      var cue_select = vars[5];
+      var task = vars[4];
+
       var cue_shape;
-      if(vars[5] == 'c'){ //circle (color)
-        cue_shape = 1;
-      }else if(vars[5] == 't'){ //triangle (color)
-        cue_shape = 3;
-      }else if(vars[5] == 'd'){ //diamond (motion)
-        cue_shape = 4;
-      }else if(vars[5] == 'r'){ //rectangle (motion)
-        cue_shape = 2;
+      if(task == "motion"){
+        if(cue_select == 1){
+          cue_shape = mapping[1];
+        }else if(cue_select == 2){
+          cue_shape = mapping[2];
+        }
+      }else if(task == "color"){
+        if(cue_select == 1){
+          cue_shape = mapping[3];
+        }else if(cue_select == 2){
+          cue_shape = mapping[4];
+        }
       }
 
       var correct_response;
-      if(vars[4] == 'motion' && vars[6] == 'up'){
+      if(task == 'motion' && vars[6] == 'up'){
         correct_response = 'l';
-      }else if(vars[4] == 'motion' && vars[6] == 'down'){
+      }else if(task == 'motion' && vars[6] == 'down'){
         correct_response = 'a';
-      }else if(vars[4] == 'color' && vars[8] == 'red'){
+      }else if(task == 'color' && vars[8] == 'red'){
         correct_response = 'a';
-      }else if(vars[4] == 'color' && vars[8] == 'blue'){
+      }else if(task == 'color' && vars[8] == 'blue'){
         correct_response = 'l';
       }
 
@@ -596,6 +632,7 @@
       }
 
       return [{
+          phase: '3',
           //id: vars[0],
           //block: vars[1],
           //mblock: vars[2],
@@ -606,8 +643,7 @@
           coherent_direction: coherent_direction,
           motionCoherence: vars[7],
           coherent_color: coherent_color,
-          colorCoherence: vars[9],
-          phase: '3'
+          colorCoherence: vars[9]
         }];
     }
 
@@ -642,19 +678,22 @@
 
         // select task trials
         var task_trials = jsPsych.data.get().filter({stage: 'task_exp'});
+        var cue_data = task_trials.select('cue_shape').values;
         var rt_data = task_trials.select('rt').values;
         var acc_data = task_trials.select('correct').values;
 
-        outputData(rt_data,acc_data);
+        outputData(cue_data,rt_data,acc_data);
 			}
 		})
 
-    function outputData(rt,acc){
+    function outputData(cue_shape, rt, acc){
       headers.push('rt');
       headers.push('correct');
+      headers.push('cue_shape');
       for(line in lines){
         lines[line].push(rt[line]);
         lines[line].push(acc[line]);
+        lines[line].push(cue_shape[line]);
       }
 
       let csv;
