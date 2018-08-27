@@ -37,7 +37,7 @@ jsPsych.plugins["dotmotion"] = (function() {
 		trial.reinsert_type = trial.reinsert_type || 2;
 		trial.aperture_center_x = trial.aperture_center_x || window.innerWidth/2;
 		trial.aperture_center_y = trial.aperture_center_y || window.innerHeight/2;
-    trial.cue_shape = trial.cue_shape || -1;
+    trial.cue_shape = trial.cue_shape || "circle";
 
 		//Coherence can be zero, but logical operators evaluate it to false. So we do it manually
 		if(typeof trial.motionCoherence === 'undefined'){

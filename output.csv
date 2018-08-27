@@ -1,8 +1,8 @@
-ID,Block,Miniblock,Trial,Task,Cue,Motion,M_coherence,Color,C_coherence,rt,correct
-1,1,1,1,color,t,down,0.75,red,0.75,71.3,FALSE
-2,1,1,2,color,,up,0.75,blue,0.75,126.3,TRUE
-3,1,1,3,color,,down,0.75,blue,0.75,123.6,TRUE
-4,1,2,1,motion,d,up,0.75,red,0.75,349.7,TRUE
-5,1,2,2,motion,,down,0.75,blue,0.75,153.3,FALSE
-6,1,2,3,motion,,down,0.75,red,0.75,71.3,FALSE
-7,1,3,1,color,c,up,0.75,red,0.75,26.90000001,FALSE
+undefinedID,Block,Miniblock,Trial,Task,Cue,Motion,M_coherence,Color,C_coherence,rt,correct,cue_shape,
+1,1,1,1,color,1,down,0.75,red,0.75,1448.6000000033528,true,circle,
+2,1,1,2,color,1,up,0.75,blue,0.75,1666.800000006333,true,circle,
+3,1,1,3,color,1,down,0.75,blue,0.75,836.1000000149943,true,circle,
+4,1,2,1,motion,2,up,0.75,red,0.75,1094.5000000065193,false,diamond,
+5,1,2,2,motion,2,down,0.75,blue,0.75,631.3999999838416,false,diamond,
+6,1,2,3,motion,2,down,0.75,red,0.75,1121.1999999941327,true,diamond,
+7,1,3,1,color,2,up,0.75,red,0.75,845.499999995809,true,triangle,
